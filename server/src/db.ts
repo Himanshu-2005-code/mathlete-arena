@@ -36,6 +36,37 @@ export function openDb(file = DB_PATH) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS duels (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      p1_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      p2_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      seed          INTEGER NOT NULL,
+      score1        INTEGER NOT NULL,
+      score2        INTEGER NOT NULL,
+      winner_id     INTEGER,
+      change1       INTEGER NOT NULL,
+      change2       INTEGER NOT NULL,
+      rating_after1 INTEGER NOT NULL,
+      rating_after2 INTEGER NOT NULL,
+      reason        TEXT NOT NULL CHECK (reason IN ('time', 'forfeit')),
+      created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_duels_p1 ON duels(p1_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_duels_p2 ON duels(p2_id, created_at DESC);
+
+    -- One attempt per player per day per kind; the first one counts.
+    CREATE TABLE IF NOT EXISTS daily_results (
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day        TEXT NOT NULL,
+      kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle')),
+      score      INTEGER NOT NULL,
+      correct    INTEGER NOT NULL,
+      time_ms    INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (user_id, day, kind)
+    );
   `);
   return db;
 }

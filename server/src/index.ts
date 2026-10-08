@@ -7,7 +7,7 @@ import { attachSocket } from "./socket";
 const db = openDb();
 const app = createApp(db);
 const server = http.createServer(app);
-attachSocket(server);
+attachSocket(server, db);
 
 server.listen(PORT, () => {
   console.log(`[matik] API + sockets on http://localhost:${PORT}`);

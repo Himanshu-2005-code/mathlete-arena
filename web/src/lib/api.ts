@@ -1,5 +1,11 @@
 import type {
   AuthResponse,
+  DailyInfo,
+  DailyResult,
+  DailySprintInput,
+  DailyPuzzleInput,
+  Leaderboard,
+  LeaderboardKind,
   Difficulty,
   PracticeResultInput,
   PublicPuzzle,
@@ -70,4 +76,10 @@ export const api = {
   savePuzzle: (r: PuzzleResultInput) =>
     call<{ ok: true }>("/api/results/puzzle", { method: "POST", body: JSON.stringify(r) }),
   stats: () => call<Stats>("/api/stats"),
+  daily: () => call<DailyInfo>("/api/daily"),
+  saveDailySprint: (r: DailySprintInput) =>
+    call<{ firstAttempt: boolean; result: DailyResult }>("/api/daily/sprint", { method: "POST", body: JSON.stringify(r) }),
+  saveDailyPuzzle: (r: DailyPuzzleInput) =>
+    call<{ firstAttempt: boolean; result: DailyResult }>("/api/daily/puzzle", { method: "POST", body: JSON.stringify(r) }),
+  leaderboard: (kind: LeaderboardKind) => call<Leaderboard>(`/api/leaderboard?kind=${kind}`),
 };

@@ -3,3 +3,4 @@ export * from "./questions";
 export * from "./adaptive";
 export * from "./crossmath";
 export * from "./types";
+export * from "./duel";

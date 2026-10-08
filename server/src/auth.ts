@@ -15,6 +15,7 @@ export interface UserRow {
 export const toPublicUser = (u: UserRow): PublicUser => ({
   id: u.id,
   username: u.username,
+  rating: u.rating,
   createdAt: u.created_at,
 });
 

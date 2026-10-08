@@ -6,6 +6,7 @@ import type { Difficulty } from "./crossmath";
 export interface PublicUser {
   id: number;
   username: string;
+  rating: number;
   createdAt: string;
 }
 
@@ -60,5 +61,72 @@ export interface Stats {
     solved: number;
     fastestByDifficulty: { difficulty: string; bestMs: number }[];
   };
+  duels: {
+    played: number;
+    won: number;
+    lost: number;
+    drawn: number;
+    peakRating: number;
+    recent: DuelRow[];
+  };
   recent: SessionRow[];
+}
+
+export interface DuelRow {
+  id: number;
+  opponent: string;
+  you: number;
+  opponentScore: number;
+  outcome: "win" | "loss" | "draw";
+  ratingChange: number;
+  reason: "time" | "forfeit";
+  createdAt: string;
+}
+
+/** One answer in a daily sprint, in order. The server replays them. */
+export interface DailyAnswer {
+  index: number;
+  value: number | null;
+}
+
+export interface DailySprintInput {
+  answers: DailyAnswer[];
+}
+
+export interface DailyPuzzleInput {
+  grid: (number | null)[][];
+  timeMs: number;
+}
+
+export interface DailyResult {
+  score: number;
+  correct: number;
+  timeMs: number;
+  rank: number;
+  of: number;
+}
+
+export interface DailyInfo {
+  day: string;
+  sprintSeed: number;
+  sprintSeconds: number;
+  puzzle: import("./crossmath").PublicPuzzle;
+  /** Present when signed in and already played today. */
+  mine: { sprint: DailyResult | null; puzzle: DailyResult | null };
+}
+
+export type LeaderboardKind = "rating" | "daily-sprint" | "daily-puzzle";
+
+export interface LeaderboardRow {
+  rank: number;
+  username: string;
+  value: number;
+  /** Secondary figure: games played (rating) or answers right (sprint). */
+  detail: number | null;
+}
+
+export interface Leaderboard {
+  kind: LeaderboardKind;
+  day: string | null;
+  rows: LeaderboardRow[];
 }

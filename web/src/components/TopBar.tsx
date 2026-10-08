@@ -5,8 +5,11 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
 const LINKS = [
+  { href: "/duel", label: "Duel" },
+  { href: "/daily", label: "Daily" },
   { href: "/practice", label: "Practice" },
   { href: "/puzzles", label: "Puzzles" },
+  { href: "/leaderboard", label: "Leaderboard" },
   { href: "/profile", label: "Profile" },
 ];
 
@@ -30,7 +33,9 @@ export function TopBar() {
         <span className="who">
           {user ? (
             <>
-              <span>{user.username}</span>
+              <Link href="/profile" className="who-name">
+                {user.username} <span className="num">{user.rating}</span>
+              </Link>
               <button type="button" onClick={signOut} className="linkish">
                 Sign out
               </button>

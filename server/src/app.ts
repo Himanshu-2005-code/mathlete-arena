@@ -3,6 +3,7 @@ import express from "express";
 import { z } from "zod";
 import {
   type AuthResponse,
+  type DuelRow,
   PRACTICE_MODES,
   SPRINT_SECONDS,
   type SessionRow,
@@ -21,6 +22,7 @@ import {
   verifyPassword,
 } from "./auth";
 import { WEB_ORIGIN } from "./config";
+import { registerCompetitionRoutes } from "./compete";
 import type { Db } from "./db";
 
 const credentials = z.object({
@@ -186,6 +188,27 @@ export function createApp(db: Db) {
       )
       .all(userId) as SessionRow[];
 
+    // Duels from this player's side, whichever slot they were in.
+    const duelRows = db
+      .prepare(
+        `SELECT d.id,
+                CASE WHEN d.p1_id = @id THEN u2.username ELSE u1.username END AS opponent,
+                CASE WHEN d.p1_id = @id THEN d.score1 ELSE d.score2 END AS you,
+                CASE WHEN d.p1_id = @id THEN d.score2 ELSE d.score1 END AS opponentScore,
+                CASE WHEN d.winner_id IS NULL THEN 'draw' WHEN d.winner_id = @id THEN 'win' ELSE 'loss' END AS outcome,
+                CASE WHEN d.p1_id = @id THEN d.change1 ELSE d.change2 END AS ratingChange,
+                CASE WHEN d.p1_id = @id THEN d.rating_after1 ELSE d.rating_after2 END AS ratingAfter,
+                d.reason, d.created_at AS createdAt
+         FROM duels d
+         JOIN users u1 ON u1.id = d.p1_id
+         JOIN users u2 ON u2.id = d.p2_id
+         WHERE d.p1_id = @id OR d.p2_id = @id
+         ORDER BY d.created_at DESC, d.id DESC`,
+      )
+      .all({ id: userId }) as (DuelRow & { ratingAfter: number })[];
+
+    const count = (o: DuelRow["outcome"]) => duelRows.filter((d) => d.outcome === o).length;
+
     const stats: Stats = {
       user: toPublicUser(user),
       practice: {
@@ -196,10 +219,20 @@ export function createApp(db: Db) {
         bestByMode,
       },
       puzzles: { solved: puzzleSolved.n, fastestByDifficulty: fastest },
+      duels: {
+        played: duelRows.length,
+        won: count("win"),
+        lost: count("loss"),
+        drawn: count("draw"),
+        peakRating: Math.max(user.rating, ...duelRows.map((d) => d.ratingAfter)),
+        recent: duelRows.slice(0, 10).map(({ ratingAfter: _, ...d }) => d),
+      },
       recent,
     };
     res.json(stats);
   });
+
+  registerCompetitionRoutes(app, db);
 
   return app;
 }

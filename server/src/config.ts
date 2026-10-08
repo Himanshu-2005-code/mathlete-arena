@@ -7,6 +7,9 @@ export const PORT = Number(process.env.PORT ?? 4000);
 export const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 export const DB_PATH = process.env.DB_PATH ?? path.resolve(here, "../data/matik.db");
 
+/** Daily challenges roll over at midnight in this UTC offset (default IST). */
+export const DAILY_UTC_OFFSET_MIN = Number(process.env.DAILY_UTC_OFFSET_MIN ?? 330);
+
 const DEV_SECRET = "dev-only-secret-change-me";
 export const JWT_SECRET = process.env.JWT_SECRET ?? DEV_SECRET;
 

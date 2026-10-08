@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { PublicUser } from "@matik/shared";
 import { api, getToken, setToken } from "./api";
+import { closeSocket } from "./socket";
 
 interface AuthState {
   user: PublicUser | null;
@@ -10,6 +11,8 @@ interface AuthState {
   signIn: (username: string, password: string) => Promise<void>;
   signUp: (username: string, password: string) => Promise<void>;
   signOut: () => void;
+  /** Re-fetch the signed-in user, e.g. after a duel changes their rating. */
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -47,9 +50,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(() => {
     setToken(null);
     setUser(null);
+    closeSocket();
   }, []);
 
-  const value = useMemo(() => ({ user, ready, signIn, signUp, signOut }), [user, ready, signIn, signUp, signOut]);
+  const refresh = useCallback(async () => {
+    if (!getToken()) return;
+    const { user } = await api.me();
+    setUser(user);
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, ready, signIn, signUp, signOut, refresh }),
+    [user, ready, signIn, signUp, signOut, refresh],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

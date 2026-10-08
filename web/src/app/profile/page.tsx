@@ -56,8 +56,8 @@ export default function ProfilePage() {
   if (error) return <p className="error">{error}</p>;
   if (!stats) return <p className="notice">Loading your stats…</p>;
 
-  const { practice, puzzles, recent } = stats;
-  const nothingYet = practice.sessions === 0 && puzzles.solved === 0;
+  const { practice, puzzles, duels, recent } = stats;
+  const nothingYet = practice.sessions === 0 && puzzles.solved === 0 && duels.played === 0;
 
   return (
     <section>
@@ -66,9 +66,12 @@ export default function ProfilePage() {
 
       {nothingYet ? (
         <>
-          <p className="notice">No games yet. Your first sprint or puzzle will show up here.</p>
+          <p className="notice">No games yet. Your first duel, sprint or puzzle will show up here.</p>
           <div className="actions">
-            <Link href="/practice" className="btn">
+            <Link href="/duel" className="btn">
+              Find a duel
+            </Link>
+            <Link href="/practice" className="btn ghost">
               Start a sprint
             </Link>
             <Link href="/puzzles" className="btn ghost">
@@ -80,22 +83,73 @@ export default function ProfilePage() {
         <>
           <div className="result-figures">
             <div className="figure">
-              <span className="num">{practice.sessions}</span>
-              <span className="label">sprints</span>
+              <span className="num">{stats.user.rating}</span>
+              <span className="label">rating, peak {duels.peakRating}</span>
             </div>
             <div className="figure">
-              <span className="num">{practice.totalCorrect}</span>
-              <span className="label">answers right</span>
+              <span className="num">
+                {duels.won}–{duels.lost}
+                {duels.drawn > 0 && `–${duels.drawn}`}
+              </span>
+              <span className="label">duels won–lost{duels.drawn > 0 && "–drawn"}</span>
             </div>
-            <div className="figure">
-              <span className="num">{Math.round(practice.accuracy * 100)}%</span>
-              <span className="label">accuracy</span>
-            </div>
-            <div className="figure">
-              <span className="num">{puzzles.solved}</span>
-              <span className="label">puzzles solved</span>
-            </div>
+            {practice.sessions > 0 && (
+              <>
+                <div className="figure">
+                  <span className="num">{practice.sessions}</span>
+                  <span className="label">sprints</span>
+                </div>
+                <div className="figure">
+                  <span className="num">{Math.round(practice.accuracy * 100)}%</span>
+                  <span className="label">sprint accuracy</span>
+                </div>
+              </>
+            )}
+            {puzzles.solved > 0 && (
+              <div className="figure">
+                <span className="num">{puzzles.solved}</span>
+                <span className="label">puzzles solved</span>
+              </div>
+            )}
           </div>
+
+          {duels.recent.length > 0 && (
+            <div className="section">
+              <h2>Recent duels</h2>
+              <div className="table-scroll">
+                <table className="ledger">
+                  <thead>
+                    <tr>
+                      <th>When</th>
+                      <th>Opponent</th>
+                      <th>Result</th>
+                      <th className="r">Score</th>
+                      <th className="r">Rating</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {duels.recent.map((d) => (
+                      <tr key={d.id}>
+                        <td>{when(d.createdAt)}</td>
+                        <td>{d.opponent}</td>
+                        <td className={`outcome ${d.outcome}`}>
+                          {cap(d.outcome)}
+                          {d.reason === "forfeit" && " (forfeit)"}
+                        </td>
+                        <td className="r num">
+                          {d.you}–{d.opponentScore}
+                        </td>
+                        <td className="r num">
+                          {d.ratingChange > 0 ? "+" : ""}
+                          {d.ratingChange}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {practice.bestByMode.length > 0 && (
             <div className="section">
@@ -143,29 +197,31 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <div className="section">
-            <h2>Recent games</h2>
-            <table className="ledger">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Game</th>
-                  <th className="r">Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((s) => (
-                  <tr key={s.id}>
-                    <td>{when(s.createdAt)}</td>
-                    <td>{s.kind === "practice" ? `${modeLabel(s.mode)} sprint` : `${cap(s.mode)} puzzle`}</td>
-                    <td className="r num">
-                      {s.kind === "practice" ? `${s.score} pts, ${s.correct}/${s.attempts}` : formatMs(s.durationMs)}
-                    </td>
+          {recent.length > 0 && (
+            <div className="section">
+              <h2>Recent sprints and puzzles</h2>
+              <table className="ledger">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Game</th>
+                    <th className="r">Result</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recent.map((s) => (
+                    <tr key={s.id}>
+                      <td>{when(s.createdAt)}</td>
+                      <td>{s.kind === "practice" ? `${modeLabel(s.mode)} sprint` : `${cap(s.mode)} puzzle`}</td>
+                      <td className="r num">
+                        {s.kind === "practice" ? `${s.score} pts, ${s.correct}/${s.attempts}` : formatMs(s.durationMs)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </section>

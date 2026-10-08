@@ -101,3 +101,32 @@ describe("cross-math", () => {
     expect(checkCrossMath(pub, bad).solved).toBe(false);
   });
 });
+
+import { dailySeed, dayKey, eloUpdate, sequenceLevel, sequenceQuestion } from "./duel";
+
+describe("duel helpers", () => {
+  it("generates the same question for a seed and index, in any order", () => {
+    const forward = Array.from({ length: 30 }, (_, i) => sequenceQuestion(77, i));
+    const backward = Array.from({ length: 30 }, (_, i) => sequenceQuestion(77, 29 - i)).reverse();
+    expect(forward).toEqual(backward);
+    expect(sequenceQuestion(77, 0)).not.toEqual(sequenceQuestion(78, 0));
+    expect(sequenceLevel(0)).toBe(2);
+    expect(sequenceLevel(100)).toBe(9);
+  });
+
+  it("updates Elo symmetrically", () => {
+    expect(eloUpdate(1000, 1000, 1)).toEqual([1016, 984]);
+    expect(eloUpdate(1000, 1000, 0.5)).toEqual([1000, 1000]);
+    const [a, b] = eloUpdate(1400, 1000, 1);
+    expect(a - 1400).toBeLessThan(5);
+    expect(a + b).toBe(2400);
+  });
+
+  it("keys days by offset and seeds them stably", () => {
+    const t = new Date("2026-10-08T19:00:00Z");
+    expect(dayKey(t, 0)).toBe("2026-10-08");
+    expect(dayKey(t, 330)).toBe("2026-10-09");
+    expect(dailySeed("2026-10-09", "sprint")).toBe(dailySeed("2026-10-09", "sprint"));
+    expect(dailySeed("2026-10-09", "sprint")).not.toBe(dailySeed("2026-10-09", "puzzle"));
+  });
+});

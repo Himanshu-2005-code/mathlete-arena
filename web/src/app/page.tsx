@@ -72,11 +72,11 @@ export default function Home() {
           )}
         </p>
         <div className="actions">
-          <Link href="/practice" className="btn">
-            Start a sprint
+          <Link href="/duel" className="btn">
+            Find a duel
           </Link>
-          <Link href="/puzzles" className="btn ghost">
-            Solve a puzzle
+          <Link href="/practice" className="btn ghost">
+            Practice first
           </Link>
         </div>
       </section>
@@ -102,11 +102,26 @@ export default function Home() {
             Puzzles
           </Link>
         </li>
-        <li className="entry soon">
+        <li className="entry">
           <div>
             <h3>Duels</h3>
-            <p>Race another player on the same questions, live, with a rating that moves after every match. Coming soon.</p>
+            <p>
+              Race another player through the same questions for a minute. Find a match near your rating or send a
+              friend a code. Every result moves your rating.
+            </p>
           </div>
+          <Link href="/duel" className="btn ghost">
+            Duel
+          </Link>
+        </li>
+        <li className="entry">
+          <div>
+            <h3>Daily challenge</h3>
+            <p>One sprint and one puzzle, the same for everyone, with a fresh leaderboard each day.</p>
+          </div>
+          <Link href="/daily" className="btn ghost">
+            Today's challenge
+          </Link>
         </li>
       </ul>
     </>
