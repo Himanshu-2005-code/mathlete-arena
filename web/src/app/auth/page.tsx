@@ -1,0 +1,101 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuth } from "@/lib/auth";
+
+export default function AuthPage() {
+  const { signIn, signUp, user } = useAuth();
+  const router = useRouter();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setBusy(true);
+    try {
+      if (mode === "signin") await signIn(username, password);
+      else await signUp(username, password);
+      router.push("/profile");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (user) {
+    return (
+      <section>
+        <h1>You're signed in</h1>
+        <p className="lede">Signed in as {user.username}.</p>
+      </section>
+    );
+  }
+
+  const isSignIn = mode === "signin";
+
+  return (
+    <section>
+      <h1>{isSignIn ? "Sign in" : "Create an account"}</h1>
+      <p className="lede">
+        {isSignIn
+          ? "Your scores and solve times are saved to your account."
+          : "Pick a username other players will see. Letters, numbers and underscores."}
+      </p>
+
+      <form onSubmit={submit} noValidate>
+        <div className="field">
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            className="text-input"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            className="text-input"
+            autoComplete={isSignIn ? "current-password" : "new-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {!isSignIn && <p className="hint">At least 6 characters.</p>}
+        </div>
+
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+
+        <div className="actions">
+          <button type="submit" className="btn" disabled={busy || !username || !password}>
+            {isSignIn ? "Sign in" : "Create account"}
+          </button>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              setMode(isSignIn ? "signup" : "signin");
+              setError("");
+            }}
+          >
+            {isSignIn ? "I'm new here" : "I already have an account"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
