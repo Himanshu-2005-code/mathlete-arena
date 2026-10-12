@@ -2,13 +2,28 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type DailyAnswer, type DailyInfo, type DailyResult, pointsFor, sequenceQuestion } from "@matik/shared";
-import { CrossMathBoard, type SolvedInfo, formatTime } from "@/components/CrossMathBoard";
+import {
+  type AnyPublicPuzzle,
+  DAILY_EXTRA_KINDS,
+  type DailyAnswer,
+  type DailyInfo,
+  type DailyResult,
+  type PuzzleKind,
+  pointsFor,
+  puzzleInfo,
+  sequenceQuestion,
+} from "@matik/shared";
+import { formatTime } from "@/components/CrossMathBoard";
+import { PuzzlePlayer, type PuzzleSolved } from "@/components/PuzzlePlayer";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { playCorrect } from "@/lib/sound";
 
-function Placing({ result, unit }: { result: DailyResult; unit: "sprint" | "puzzle" }) {
+/** The leaderboard tab for each daily game (cross-math was the first, so it's "puzzle"). */
+type Board = "sprint" | "puzzle" | "kenken" | "sudoku" | "maze";
+const boardOf = (kind: PuzzleKind): Board => (kind === "crossmath" ? "puzzle" : kind);
+
+function Placing({ result, unit }: { result: DailyResult; unit: Board }) {
   return (
     <p className="notice">
       {unit === "sprint" ? (
@@ -161,15 +176,64 @@ function DailySprint({ info, onDone }: { info: DailyInfo; onDone: (r: DailyResul
   );
 }
 
+/** One of today's puzzles, saved to its own leaderboard. */
+function DailyPuzzle({
+  p,
+  onSaved,
+}: {
+  p: AnyPublicPuzzle;
+  onSaved: (kind: PuzzleKind, r: DailyResult, s: Streak) => void;
+}) {
+  const { user } = useAuth();
+  const [solvedMs, setSolvedMs] = useState<number | null>(null);
+  const [msg, setMsg] = useState("");
+
+  const onSolved = useCallback(
+    ({ answer, timeMs }: PuzzleSolved) => {
+      setSolvedMs(timeMs);
+      if (!user) return;
+      setMsg("Saving…");
+      api
+        .saveDailyPuzzle({ kind: p.kind, ...answer, timeMs })
+        .then(({ firstAttempt, result, streak }) => {
+          setMsg(firstAttempt ? "" : "Only your first solve today counts.");
+          onSaved(p.kind, result, streak);
+        })
+        .catch((e: Error) => setMsg(`Not saved: ${e.message}`));
+    },
+    [user, p.kind, onSaved],
+  );
+
+  return (
+    <>
+      <p className="muted">{puzzleInfo(p.kind).rules}</p>
+      <PuzzlePlayer p={p} onSolved={onSolved} />
+      {solvedMs !== null && (
+        <div aria-live="polite">
+          <p className="notice">
+            Solved in <strong>{formatTime(solvedMs)}</strong>.
+          </p>
+          {msg && <p className="notice">{msg}</p>}
+          {!user && (
+            <p className="notice">
+              <Link href="/auth">Sign in</Link> to get on today's leaderboard.
+            </p>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+type Slot = "sprint" | PuzzleKind;
+
 export default function DailyPage() {
   const { user, ready } = useAuth();
   const [info, setInfo] = useState<DailyInfo | null>(null);
   const [error, setError] = useState("");
-  const [sprintResult, setSprintResult] = useState<DailyResult | null>(null);
-  const [puzzleResult, setPuzzleResult] = useState<DailyResult | null>(null);
+  const [results, setResults] = useState<Partial<Record<Slot, DailyResult | null>>>({});
   const [streak, setStreak] = useState<Streak | null>(null);
-  const [puzzleMsg, setPuzzleMsg] = useState("");
-  const [puzzleSolvedMs, setPuzzleSolvedMs] = useState<number | null>(null);
+  const [open, setOpen] = useState<Slot | null>(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -177,34 +241,25 @@ export default function DailyPage() {
       .daily()
       .then((d) => {
         setInfo(d);
-        setSprintResult(d.mine.sprint);
-        setPuzzleResult(d.mine.puzzle);
+        setResults({
+          sprint: d.mine.sprint,
+          crossmath: d.mine.puzzle,
+          ...Object.fromEntries(DAILY_EXTRA_KINDS.map((k) => [k, d.extra[k].mine])),
+        });
         setStreak(d.streak);
       })
       .catch((e: Error) => setError(e.message));
   }, [ready, user]);
 
   const onSprintDone = useCallback((r: DailyResult | null, st?: Streak) => {
-    if (r) setSprintResult(r);
+    if (r) setResults((x) => ({ ...x, sprint: r }));
     if (st) setStreak(st);
   }, []);
 
-  const onPuzzleSolved = useCallback(
-    ({ grid, timeMs }: SolvedInfo) => {
-      setPuzzleSolvedMs(timeMs);
-      if (!user) return;
-      setPuzzleMsg("Saving…");
-      api
-        .saveDailyPuzzle({ grid, timeMs })
-        .then(({ firstAttempt, result, streak }) => {
-          setPuzzleResult(result);
-          setStreak(streak);
-          setPuzzleMsg(firstAttempt ? "" : "Only your first solve today counts.");
-        })
-        .catch((e: Error) => setPuzzleMsg(`Not saved: ${e.message}`));
-    },
-    [user],
-  );
+  const onPuzzleSaved = useCallback((kind: PuzzleKind, r: DailyResult, st: Streak) => {
+    setResults((x) => ({ ...x, [kind]: r }));
+    setStreak(st);
+  }, []);
 
   if (error) return <p className="error">{error}</p>;
   if (!info) return <p className="notice">Loading today's challenge…</p>;
@@ -215,12 +270,29 @@ export default function DailyPage() {
     month: "long",
   });
 
+  const puzzles: Record<PuzzleKind, AnyPublicPuzzle> = {
+    crossmath: { kind: "crossmath", puzzle: info.puzzle },
+    kenken: info.extra.kenken.puzzle,
+    sudoku: info.extra.sudoku.puzzle,
+    maze: info.extra.maze.puzzle,
+  };
+
+  const slots: { id: Slot; title: string; about: string }[] = [
+    { id: "sprint", title: "Sprint", about: "One minute of mixed questions that get harder as you go. Most points wins." },
+    ...(["crossmath", "kenken", "sudoku", "maze"] as PuzzleKind[]).map((k) => ({
+      id: k,
+      title: puzzleInfo(k).label,
+      about: `${puzzleInfo(k).difficulties.find((d) => d.id === puzzles[k].puzzle.difficulty)?.label}. Fastest solve wins.`,
+    })),
+  ];
+  const done = slots.filter((s) => results[s.id]).length;
+
   return (
     <section>
       <h1>Daily challenge</h1>
       <p className="lede">
-        {date}. Everyone gets the same sprint and the same puzzle today, and your first try is the one that counts. A new
-        challenge starts at midnight.
+        {date}. Five games, the same for everyone today, and your first try at each is the one that counts. Play any one
+        to keep your streak. A new set starts at midnight.
       </p>
       {streak && (
         <p className="streak">
@@ -236,40 +308,52 @@ export default function DailyPage() {
           )}
         </p>
       )}
+      {user && (
+        <p className="muted">
+          {done} of {slots.length} played today.
+        </p>
+      )}
 
-      <div className="section">
-        <h2>Sprint</h2>
-        <p className="muted">One minute of mixed questions that get harder as you go.</p>
-        {sprintResult ? <Placing result={sprintResult} unit="sprint" /> : <DailySprint info={info} onDone={onSprintDone} />}
-      </div>
-
-      <div className="section">
-        <h2>Puzzle</h2>
-        <p className="muted">A medium cross-math grid. Fastest solve wins.</p>
-        {puzzleResult ? (
-          <>
-            <Placing result={puzzleResult} unit="puzzle" />
-            {puzzleMsg && <p className="notice">{puzzleMsg}</p>}
-          </>
-        ) : (
-          <>
-            <CrossMathBoard key={info.puzzle.seed} puzzle={info.puzzle} onSolved={onPuzzleSolved} />
-            {puzzleSolvedMs !== null && (
-              <div aria-live="polite">
-                <p className="notice">
-                  Solved in <strong>{formatTime(puzzleSolvedMs)}</strong>.
-                </p>
-                {puzzleMsg && <p className="notice">{puzzleMsg}</p>}
-                {!user && (
-                  <p className="notice">
-                    <Link href="/auth">Sign in</Link> to get on today's leaderboard.
-                  </p>
+      <ul className="entries daily-list">
+        {slots.map((slot) => {
+          const result = results[slot.id] ?? null;
+          const isOpen = open === slot.id;
+          return (
+            <li key={slot.id} className={`entry${isOpen ? " open" : ""}`}>
+              <div>
+                <h3>
+                  {result && <span className="done-mark" aria-label="Played">✓ </span>}
+                  {slot.title}
+                </h3>
+                {result ? (
+                  <Placing result={result} unit={slot.id === "sprint" ? "sprint" : boardOf(slot.id)} />
+                ) : (
+                  <p>{slot.about}</p>
                 )}
               </div>
-            )}
-          </>
-        )}
-      </div>
+              {!result && (
+                <button
+                  type="button"
+                  className={`btn${isOpen ? " ghost" : ""}`}
+                  aria-expanded={isOpen}
+                  onClick={() => setOpen(isOpen ? null : slot.id)}
+                >
+                  {isOpen ? "Close" : "Play"}
+                </button>
+              )}
+              {isOpen && !result && (
+                <div className="entry-body">
+                  {slot.id === "sprint" ? (
+                    <DailySprint info={info} onDone={onSprintDone} />
+                  ) : (
+                    <DailyPuzzle p={puzzles[slot.id]} onSaved={onPuzzleSaved} />
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

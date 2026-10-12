@@ -1,6 +1,6 @@
 # matik-game
 
-A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, and cross-math puzzles.
+A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, and four puzzle games: cross-math, KenKen, Sudoku and Math Maze.
 
 ## Features
 
@@ -12,9 +12,9 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - **Friend challenges**: create a six-character code or link (`/duel?code=ABC234`); the duel starts when your friend joins.
 - **Rematches**: for a minute after a duel, either player can ask for a rematch; it starts when the other accepts. Computer opponents accept at once.
 - **Elo ratings**: everyone starts at 1000; K-factor 32. Draws are possible.
-- **Daily challenge**: one sprint and one medium puzzle per day, the same for everyone. Only your first attempt counts. The server replays every sprint answer against the day's seed and checks the puzzle grid before ranking you. Days roll over at midnight IST (configurable).
+- **Daily challenge**: five games a day, the same for everyone: a sprint, a medium cross-math, a 5×5 KenKen, a 6×6 Sudoku and an easy Math Maze. Only your first attempt at each counts. The server replays every sprint answer against the day's seed and checks every puzzle answer before ranking you. Days roll over at midnight IST (configurable).
 - **Daily streaks**: days in a row with at least one daily result, shown on the daily page and your profile, with your best run. Today's streak holds until midnight even if you haven't played yet.
-- **Leaderboards**: duel rating, today's sprint (points) and today's puzzle (fastest time).
+- **Leaderboards**: duel rating, today's sprint (points), and today's fastest solve for each of the four puzzles.
 - **Live scoreboard**: both scores drawn as tally marks while you play.
 - **Sound and phones**: short synthesized blips for right and wrong answers (toggle in the top bar, remembered per browser), and a collapsible menu on narrow screens.
 
@@ -22,9 +22,13 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 
 - **Practice sprints**: 30, 60 or 120 seconds of addition, subtraction, multiplication, division or a mix. Each question advances the moment you type the right answer; Enter on a wrong one counts a miss.
 - **Adaptive difficulty**: 10 levels. Three fast correct answers in a row move you up; a miss or two slow answers move you down. Or pick a fixed level.
-- **Cross-math puzzles**: 3×3 grids where every row and column is an equation (× and ÷ before + and −). Easy, medium and hard, with a timer and mistake count. Any valid placement counts, not just the generated one.
+- **Cross-math**: 3×3 grids where every row and column is an equation (× and ÷ before + and −). Easy, medium and hard.
+- **KenKen**: 5×5 or 6×6. Each number once per row and column, and each outlined cage must make its target with its operation. Every puzzle is checked to have exactly one solution.
+- **Sudoku**: Mini 6×6 (2×3 boxes) and Classic 9×9, also with exactly one solution, and pencil notes.
+- **Math Maze**: walk a 5×5 or 7×7 grid of alternating numbers and operators from top-left to bottom-right, without reusing a square, and land on the target. The path is worked out left to right, like a calculator.
+- All puzzles have a timer and mistake count, play by tap or keyboard, and accept any valid answer, not just the generated one.
 - **Accounts and stats**: username/password sign-in, best sprint scores per operation and length, fastest puzzle times, accuracy and recent games.
-- **Server-verified puzzle solves**: puzzles come from a seeded generator, so the server rebuilds each puzzle from its seed and checks the submitted grid before saving a time.
+- **Server-verified puzzle solves**: puzzles come from seeded generators, so the server rebuilds each puzzle from its seed and checks the submitted grid or path before saving a time.
 
 ## Stack
 
@@ -107,6 +111,10 @@ shared/src/
   questions.ts    question generator, levels 1-10
   adaptive.ts     difficulty that follows pace and accuracy
   crossmath.ts    cross-math generator, evaluator and checker
+  kenken.ts       KenKen generator (unique solutions), solver, checker
+  sudoku.ts       6×6 and 9×9 Sudoku generator (unique solutions), solver, checker
+  maze.ts         Math Maze generator, path evaluator, checker
+  puzzles.ts      registry of the four puzzle games: rules, difficulties, verify
   duel.ts         duel/daily question sequence, Elo, daily seeds, socket event types
   types.ts        API request/response types
 server/src/
@@ -119,7 +127,7 @@ server/src/
   socket.ts       authenticated Socket.io wired to the duel manager
 web/src/
   app/            pages: home, duel, daily, practice, puzzles, leaderboard, auth, profile
-  components/     top bar, choice chips, cross-math board, tally marks
+  components/     top bar, choice chips, puzzle boards (cross-math, KenKen/Sudoku, maze), tally marks
   lib/            API client, auth context, socket client
 ```
 
@@ -132,12 +140,12 @@ web/src/
 | GET | `/api/me` | yes | Current user |
 | POST | `/api/results/practice` | yes | Save a finished sprint |
 | GET | `/api/puzzles/crossmath?difficulty=` | | New puzzle without its solution |
-| POST | `/api/results/puzzle` | yes | Verify and save a solved puzzle |
+| POST | `/api/results/puzzle` | yes | Verify and save a solved puzzle (`kind`: crossmath, kenken, sudoku or maze; `grid` or `path`) |
 | GET | `/api/stats` | yes | Profile stats, including duel record |
 | GET | `/api/daily` | optional | Today's sprint seed and puzzle, plus your results if signed in |
 | POST | `/api/daily/sprint` | yes | Submit today's sprint answers for replay and ranking |
-| POST | `/api/daily/puzzle` | yes | Submit today's puzzle solution |
-| GET | `/api/leaderboard?kind=rating\|daily-sprint\|daily-puzzle` | | Top 50 |
+| POST | `/api/daily/puzzle` | yes | Submit a solution to one of today's puzzles (`kind`, then `grid` or `path`) |
+| GET | `/api/leaderboard?kind=` | | Top 50: `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze` |
 
 ### Socket events
 
@@ -151,7 +159,7 @@ Sockets authenticate with the same JWT as the REST API (`auth: { token }`).
 
 - Spectating live duels
 - Seasonal ratings and weekly leaderboards
-- More puzzle types (KenKen-style, number targets)
+- Hard versions of the daily KenKen, Sudoku and maze
 - Achievements
 - Mobile app (React Native) reusing `shared/`
 

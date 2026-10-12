@@ -2,61 +2,88 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { DIFFICULTIES, type Difficulty, type PublicPuzzle, generateCrossMath, randomSeed, toPublic } from "@matik/shared";
+import {
+  type AnyPublicPuzzle,
+  PUZZLE_KINDS,
+  type PuzzleKind,
+  generatePublicPuzzle,
+  puzzleInfo,
+  randomSeed,
+} from "@matik/shared";
 import { Choices } from "@/components/Choices";
-import { CrossMathBoard, type SolvedInfo, formatTime } from "@/components/CrossMathBoard";
+import { formatTime } from "@/components/CrossMathBoard";
+import { PuzzlePlayer, type PuzzleSolved } from "@/components/PuzzlePlayer";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 export default function PuzzlesPage() {
   const { user } = useAuth();
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [puzzle, setPuzzle] = useState<PublicPuzzle | null>(null);
+  const [kind, setKind] = useState<PuzzleKind>("crossmath");
+  const [difficulty, setDifficulty] = useState("easy");
+  const [puzzle, setPuzzle] = useState<AnyPublicPuzzle | null>(null);
   const [solvedMs, setSolvedMs] = useState<number | null>(null);
   const [saveMsg, setSaveMsg] = useState("");
 
-  const newPuzzle = (d: Difficulty = difficulty) => {
-    setPuzzle(toPublic(generateCrossMath(randomSeed(), d)));
+  const newPuzzle = (k: PuzzleKind = kind, d: string = difficulty) => {
+    setPuzzle(generatePublicPuzzle(k, randomSeed(), d));
     setSolvedMs(null);
     setSaveMsg("");
   };
 
-  // Generated after mount so the server render and the client agree.
-  useEffect(() => newPuzzle("easy"), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Pick the game from a link like /puzzles?kind=kenken, then deal the first puzzle.
+  useEffect(() => {
+    const k = new URLSearchParams(window.location.search).get("kind") as PuzzleKind | null;
+    const start = k && PUZZLE_KINDS.some((x) => x.id === k) ? k : "crossmath";
+    const d = puzzleInfo(start).difficulties[0].id;
+    setKind(start);
+    setDifficulty(d);
+    newPuzzle(start, d);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSolved = useCallback(
-    ({ grid, timeMs, mistakes }: SolvedInfo) => {
+    ({ answer, timeMs, mistakes }: PuzzleSolved) => {
       setSolvedMs(timeMs);
       if (!user || !puzzle) return;
       setSaveMsg("Saving…");
       api
-        .savePuzzle({ seed: puzzle.seed, difficulty: puzzle.difficulty, grid, timeMs, mistakes })
+        .savePuzzle({ kind: puzzle.kind, seed: puzzle.puzzle.seed, difficulty: puzzle.puzzle.difficulty, ...answer, timeMs, mistakes })
         .then(() => setSaveMsg("Saved to your profile."))
         .catch((e: Error) => setSaveMsg(`Not saved: ${e.message}`));
     },
     [user, puzzle],
   );
 
+  const info = puzzleInfo(kind);
+
   return (
     <section>
-      <h1>Cross-math</h1>
-      <p className="lede">
-        Place the numbers so every row and column is true. Multiplication and division are worked out before addition
-        and subtraction. Pick a number, then a gap; tap a filled gap to take it back.
-      </p>
+      <h1>Puzzles</h1>
 
+      <Choices
+        legend="Game"
+        name="kind"
+        value={kind}
+        onChange={(k) => {
+          const d = puzzleInfo(k).difficulties[0].id;
+          setKind(k);
+          setDifficulty(d);
+          newPuzzle(k, d);
+        }}
+        options={PUZZLE_KINDS.map((k) => ({ value: k.id, label: k.label }))}
+      />
+      <p className="lede">{info.rules}</p>
       <Choices
         legend="Difficulty"
         name="difficulty"
         value={difficulty}
         onChange={(d) => {
           setDifficulty(d);
-          newPuzzle(d);
+          newPuzzle(kind, d);
         }}
-        options={DIFFICULTIES.map((d) => ({ value: d.id, label: `${d.label}, ${d.hidden} gaps` }))}
+        options={info.difficulties.map((d) => ({ value: d.id, label: d.label }))}
       />
 
-      {puzzle && <CrossMathBoard key={puzzle.seed} puzzle={puzzle} onSolved={onSolved} />}
+      {puzzle && <PuzzlePlayer p={puzzle} onSolved={onSolved} />}
 
       {solvedMs !== null ? (
         <div aria-live="polite">

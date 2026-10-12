@@ -9,6 +9,8 @@ import {
   type SessionRow,
   type Stats,
   checkCrossMath,
+  isDifficulty,
+  verifyPuzzle,
   generateCrossMath,
   toPublic,
 } from "@matik/shared";
@@ -24,6 +26,7 @@ import {
 import { WEB_ORIGIN } from "./config";
 import { isReservedName } from "./bots";
 import { dailyStreak, registerCompetitionRoutes } from "./compete";
+import { answerGrid, answerPath, puzzleKind } from "./schemas";
 import type { Db } from "./db";
 
 const credentials = z.object({
@@ -51,9 +54,11 @@ const practiceResult = z.object({
 });
 
 const puzzleResult = z.object({
+  kind: puzzleKind.default("crossmath"),
   seed: z.number().int().min(0),
-  difficulty: z.enum(["easy", "medium", "hard"]),
-  grid: z.array(z.array(z.number().int().nullable()).length(3)).length(3),
+  difficulty: z.string().max(10),
+  grid: answerGrid.optional(),
+  path: answerPath.optional(),
   timeMs: z.number().int().min(0).max(24 * 3600_000),
   mistakes: z.number().int().min(0).max(1_000),
 });
@@ -142,15 +147,17 @@ export function createApp(db: Db) {
     const parsed = puzzleResult.safeParse(req.body);
     if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
     const r = parsed.data;
-    const puzzle = toPublic(generateCrossMath(r.seed, r.difficulty));
-    if (!checkCrossMath(puzzle, r.grid).solved) {
-      return void res.status(400).json({ error: "That grid does not solve the puzzle" });
+    if (!isDifficulty(r.kind, r.difficulty)) return void res.status(400).json({ error: "Unknown difficulty" });
+    if (!verifyPuzzle(r.kind, r.seed, r.difficulty, { grid: r.grid, path: r.path })) {
+      return void res.status(400).json({ error: "That doesn't solve the puzzle" });
     }
 
+    // Cross-math keeps its plain difficulty as the mode; other games are "kind:difficulty".
+    const mode = r.kind === "crossmath" ? r.difficulty : `${r.kind}:${r.difficulty}`;
     db.prepare(
       `INSERT INTO sessions (user_id, kind, mode, score, correct, attempts, duration_ms, seed)
        VALUES (?, 'puzzle', ?, 1, 1, ?, ?, ?)`,
-    ).run((req as AuthedRequest).userId, r.difficulty, 1 + r.mistakes, r.timeMs, r.seed);
+    ).run((req as AuthedRequest).userId, mode, 1 + r.mistakes, r.timeMs, r.seed);
     res.status(201).json({ ok: true });
   });
 

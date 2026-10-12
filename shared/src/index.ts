@@ -4,3 +4,7 @@ export * from "./adaptive";
 export * from "./crossmath";
 export * from "./types";
 export * from "./duel";
+export * from "./kenken";
+export * from "./sudoku";
+export * from "./maze";
+export * from "./puzzles";

@@ -60,7 +60,7 @@ export function openDb(file = DB_PATH) {
     CREATE TABLE IF NOT EXISTS daily_results (
       user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       day        TEXT NOT NULL,
-      kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle')),
+      kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle', 'kenken', 'sudoku', 'maze')),
       score      INTEGER NOT NULL,
       correct    INTEGER NOT NULL,
       time_ms    INTEGER NOT NULL,
@@ -68,6 +68,28 @@ export function openDb(file = DB_PATH) {
       PRIMARY KEY (user_id, day, kind)
     );
   `);
+
+  // Daily results first allowed only sprint and cross-math; widen the kinds.
+  const daily = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'daily_results'").get() as
+    | { sql: string }
+    | undefined;
+  if (daily && !daily.sql.includes("'kenken'")) {
+    db.transaction(() => {
+      db.exec("ALTER TABLE daily_results RENAME TO daily_results_old");
+      db.exec(`CREATE TABLE daily_results (
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day        TEXT NOT NULL,
+        kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle', 'kenken', 'sudoku', 'maze')),
+        score      INTEGER NOT NULL,
+        correct    INTEGER NOT NULL,
+        time_ms    INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (user_id, day, kind)
+      )`);
+      db.exec("INSERT INTO daily_results SELECT * FROM daily_results_old");
+      db.exec("DROP TABLE daily_results_old");
+    })();
+  }
 
   // Added after the first release: flag computer opponents.
   const cols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];

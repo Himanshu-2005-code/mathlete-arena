@@ -9,14 +9,22 @@ import { useAuth } from "@/lib/auth";
 
 const KINDS: { value: LeaderboardKind; label: string }[] = [
   { value: "rating", label: "Duel rating" },
-  { value: "daily-sprint", label: "Today's sprint" },
-  { value: "daily-puzzle", label: "Today's puzzle" },
+  { value: "daily-sprint", label: "Sprint" },
+  { value: "daily-puzzle", label: "Cross-math" },
+  { value: "daily-kenken", label: "KenKen" },
+  { value: "daily-sudoku", label: "Sudoku" },
+  { value: "daily-maze", label: "Math Maze" },
 ];
+
+const solveBoard = (game: string) => ({ value: "Time", detail: null, empty: `Nobody has solved today's ${game} yet.` });
 
 const COLUMNS: Record<LeaderboardKind, { value: string; detail: string | null; empty: string }> = {
   rating: { value: "Rating", detail: "Duels", empty: "No duels played yet. Win one and you're on the board." },
   "daily-sprint": { value: "Points", detail: "Answers", empty: "Nobody has played today's sprint yet." },
-  "daily-puzzle": { value: "Time", detail: null, empty: "Nobody has solved today's puzzle yet." },
+  "daily-puzzle": solveBoard("cross-math"),
+  "daily-kenken": solveBoard("KenKen"),
+  "daily-sudoku": solveBoard("Sudoku"),
+  "daily-maze": solveBoard("Math Maze"),
 };
 
 export default function LeaderboardPage() {
@@ -48,7 +56,7 @@ export default function LeaderboardPage() {
       <p className="lede">
         {kind === "rating"
           ? "Everyone who has played a duel, by rating."
-          : `Best first attempts at the daily challenge${board?.day ? ` for ${board.day}` : ""}.`}
+          : `Today's best first attempts${board?.day ? ` (${board.day})` : ""}. Days reset at midnight.`}
       </p>
 
       <Choices legend="Board" name="board" value={kind} onChange={setKind} options={KINDS} />
@@ -75,7 +83,7 @@ export default function LeaderboardPage() {
                     {r.username}
                     {r.bot && <span className="tag">computer</span>}
                   </td>
-                  <td className="r num">{kind === "daily-puzzle" ? formatTime(r.value) : r.value}</td>
+                  <td className="r num">{kind === "rating" || kind === "daily-sprint" ? r.value : formatTime(r.value)}</td>
                   {cols.detail && <td className="r num">{r.detail}</td>}
                 </tr>
               ))}

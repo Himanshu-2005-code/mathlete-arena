@@ -3,7 +3,14 @@ import type { AddressInfo } from "node:net";
 import request from "supertest";
 import { type Socket, io as connect } from "socket.io-client";
 import { afterEach, describe, expect, it } from "vitest";
-import { type ClientToServerEvents, type ServerToClientEvents, sequenceQuestion } from "@matik/shared";
+import {
+  type ClientToServerEvents,
+  type ServerToClientEvents,
+  generateKenKen,
+  generateMaze,
+  generateSudoku,
+  sequenceQuestion,
+} from "@matik/shared";
 import { createApp } from "./app";
 import { type DuelOptions, allowedGap } from "./duels";
 import { openDb } from "./db";
@@ -279,5 +286,89 @@ describe("rematches", () => {
     a.sock.emit("rematch:request");
     const d2 = await second;
     expect(d2.opponent).toMatchObject({ username: d1.opponent.username, bot: true });
+  });
+});
+
+describe("new puzzle games", () => {
+  it("verifies and saves KenKen, Sudoku and Math Maze solves, with profile labels", async () => {
+    const { app } = await setup();
+    const token = (await request(app).post("/api/auth/register").send({ username: "puzzler", password: "secret123" }))
+      .body.token as string;
+    const auth = { Authorization: `Bearer ${token}` };
+    const k = generateKenKen(11, "hard");
+    const s = generateSudoku(11, "easy");
+    const m = generateMaze(11, "easy");
+
+    const ok = [
+      { kind: "kenken", seed: 11, difficulty: "hard", grid: k.solution, timeMs: 90_000, mistakes: 0 },
+      { kind: "sudoku", seed: 11, difficulty: "easy", grid: s.solution, timeMs: 60_000, mistakes: 1 },
+      { kind: "maze", seed: 11, difficulty: "easy", path: m.solution, timeMs: 30_000, mistakes: 0 },
+    ];
+    for (const body of ok) expect((await request(app).post("/api/results/puzzle").set(auth).send(body)).status).toBe(201);
+
+    const wrongPath = await request(app)
+      .post("/api/results/puzzle")
+      .set(auth)
+      .send({ kind: "maze", seed: 11, difficulty: "easy", path: [[0, 0]], timeMs: 1000, mistakes: 0 });
+    expect(wrongPath.status).toBe(400);
+    const badDifficulty = await request(app)
+      .post("/api/results/puzzle")
+      .set(auth)
+      .send({ kind: "kenken", seed: 11, difficulty: "medium", grid: k.solution, timeMs: 1000, mistakes: 0 });
+    expect(badDifficulty.status).toBe(400);
+
+    const stats = (await request(app).get("/api/stats").set(auth)).body;
+    expect(stats.puzzles.solved).toBe(3);
+    expect(stats.puzzles.fastestByDifficulty.map((f: { difficulty: string }) => f.difficulty).sort()).toEqual([
+      "kenken:hard",
+      "maze:easy",
+      "sudoku:easy",
+    ]);
+  });
+
+  it("serves the daily KenKen, Sudoku and Maze and ranks solves on their own boards", async () => {
+    const { app } = await setup();
+    const token = (await request(app).post("/api/auth/register").send({ username: "dailyp", password: "secret123" }))
+      .body.token as string;
+    const auth = { Authorization: `Bearer ${token}` };
+    const daily = (await request(app).get("/api/daily").set(auth)).body;
+    expect(Object.keys(daily.extra).sort()).toEqual(["kenken", "maze", "sudoku"]);
+    expect(daily.extra.kenken.puzzle.puzzle).not.toHaveProperty("solution");
+    expect(daily.extra.maze.mine).toBeNull();
+
+    // Recreate today's maze the way the server does, then solve it.
+    const { dailyPuzzle, today } = await import("./compete");
+    const { seed, difficulty } = dailyPuzzle(today(), "maze");
+    const maze = generateMaze(seed, difficulty as "easy");
+    const res = await request(app).post("/api/daily/puzzle").set(auth).send({ kind: "maze", path: maze.solution, timeMs: 42_000 });
+    expect(res.status).toBe(201);
+    expect(res.body.result).toMatchObject({ rank: 1, of: 1, timeMs: 42_000 });
+
+    const board = (await request(app).get("/api/leaderboard?kind=daily-maze")).body;
+    expect(board.rows).toEqual([{ rank: 1, username: "dailyp", value: 42_000, detail: null }]);
+    expect((await request(app).get("/api/leaderboard?kind=daily-kenken")).body.rows).toEqual([]);
+    expect((await request(app).get("/api/daily").set(auth)).body.extra.maze.mine.timeMs).toBe(42_000);
+  });
+
+  it("migrates an old daily table so the new kinds can be saved", async () => {
+    const Database = (await import("better-sqlite3")).default;
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "matik-")), "old.db");
+    const old = new Database(file);
+    old.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash TEXT NOT NULL, rating INTEGER NOT NULL DEFAULT 1000, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+      INSERT INTO users (username, password_hash) VALUES ('early', 'x');
+      CREATE TABLE daily_results (user_id INTEGER NOT NULL, day TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle')), score INTEGER NOT NULL, correct INTEGER NOT NULL,
+      time_ms INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (user_id, day, kind));
+      INSERT INTO daily_results (user_id, day, kind, score, correct, time_ms) VALUES (1, '2026-10-01', 'puzzle', 1, 1, 5000);`);
+    old.close();
+    const db = openDb(file);
+    db.prepare("INSERT INTO daily_results (user_id, day, kind, score, correct, time_ms) VALUES (1, '2026-10-02', 'kenken', 1, 1, 9000)").run();
+    expect((db.prepare("SELECT COUNT(*) AS n FROM daily_results").get() as { n: number }).n).toBe(2);
+    // The rating column and bot flag were added on top of the old users table too.
+    expect(db.prepare("SELECT is_bot, rating FROM users WHERE id = 1").get()).toEqual({ is_bot: 0, rating: 1000 });
   });
 });

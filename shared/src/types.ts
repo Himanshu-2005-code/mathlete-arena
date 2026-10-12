@@ -1,5 +1,5 @@
 import type { PracticeMode } from "./questions";
-import type { Difficulty } from "./crossmath";
+import type { AnyPublicPuzzle, PuzzleKind } from "./puzzles";
 
 /** API contracts shared by the server and the web app. */
 
@@ -30,9 +30,12 @@ export interface PracticeResultInput {
 }
 
 export interface PuzzleResultInput {
+  /** Defaults to cross-math, for older clients. */
+  kind?: PuzzleKind;
   seed: number;
-  difficulty: Difficulty;
-  grid: (number | null)[][];
+  difficulty: string;
+  grid?: (number | null)[][];
+  path?: [number, number][];
   timeMs: number;
   mistakes: number;
 }
@@ -95,9 +98,16 @@ export interface DailySprintInput {
 }
 
 export interface DailyPuzzleInput {
-  grid: (number | null)[][];
+  /** Defaults to cross-math. */
+  kind?: PuzzleKind;
+  grid?: (number | null)[][];
+  path?: [number, number][];
   timeMs: number;
 }
+
+/** The daily puzzles beyond cross-math. */
+export type DailyExtraKind = "kenken" | "sudoku" | "maze";
+export const DAILY_EXTRA_KINDS: DailyExtraKind[] = ["kenken", "sudoku", "maze"];
 
 export interface DailyResult {
   score: number;
@@ -114,11 +124,28 @@ export interface DailyInfo {
   puzzle: import("./crossmath").PublicPuzzle;
   /** Present when signed in and already played today. */
   mine: { sprint: DailyResult | null; puzzle: DailyResult | null };
+  /** Today's KenKen, Sudoku and Math Maze. */
+  extra: Record<DailyExtraKind, { difficulty: string; puzzle: AnyPublicPuzzle; mine: DailyResult | null }>;
   /** Days in a row with at least one daily result; null when signed out. */
   streak: { current: number; best: number } | null;
 }
 
-export type LeaderboardKind = "rating" | "daily-sprint" | "daily-puzzle";
+export type LeaderboardKind =
+  | "rating"
+  | "daily-sprint"
+  | "daily-puzzle"
+  | "daily-kenken"
+  | "daily-sudoku"
+  | "daily-maze";
+
+export const LEADERBOARD_KINDS: LeaderboardKind[] = [
+  "rating",
+  "daily-sprint",
+  "daily-puzzle",
+  "daily-kenken",
+  "daily-sudoku",
+  "daily-maze",
+];
 
 export interface LeaderboardRow {
   rank: number;

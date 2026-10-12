@@ -1,7 +1,14 @@
 import type { Express } from "express";
 import { z } from "zod";
 import {
+  DAILY_EXTRA_KINDS,
+  type DailyExtraKind,
   type DailyInfo,
+  LEADERBOARD_KINDS,
+  type PuzzleKind,
+  generatePublicPuzzle,
+  puzzleInfo,
+  verifyPuzzle,
   type DailyResult,
   DUEL_SECONDS,
   type Leaderboard,
@@ -15,6 +22,7 @@ import {
   sequenceQuestion,
   toPublic,
 } from "@matik/shared";
+import { answerGrid, answerPath, puzzleKind } from "./schemas";
 import { type AuthedRequest, requireAuth, verifyToken } from "./auth";
 import { DAILY_UTC_OFFSET_MIN } from "./config";
 import type { Db } from "./db";
@@ -31,9 +39,23 @@ const sprintBody = z.object({
 });
 
 const puzzleBody = z.object({
-  grid: z.array(z.array(z.number().int().nullable()).length(3)).length(3),
+  kind: puzzleKind.default("crossmath"),
+  grid: answerGrid.optional(),
+  path: answerPath.optional(),
   timeMs: z.number().int().min(1000).max(24 * 3600_000),
 });
+
+type DailyKind = "sprint" | "puzzle" | DailyExtraKind;
+
+/** Cross-math was the first daily puzzle and is stored as "puzzle". */
+const dailyKindOf = (kind: PuzzleKind): DailyKind => (kind === "crossmath" ? "puzzle" : kind);
+
+/** Today's puzzle of a kind: same seed and difficulty for everyone. */
+export function dailyPuzzle(day: string, kind: PuzzleKind) {
+  const difficulty = puzzleInfo(kind).daily;
+  const seed = kind === "crossmath" ? dailySeed(day, "puzzle") : dailySeed(`${day}:${kind}`, "puzzle");
+  return { seed, difficulty };
+}
 
 /**
  * Replay a daily sprint. Answers must walk the question sequence in order:
@@ -70,7 +92,7 @@ export function today(now = new Date()) {
 }
 
 export function registerCompetitionRoutes(app: Express, db: Db) {
-  function myResult(userId: number, day: string, kind: "sprint" | "puzzle"): DailyResult | null {
+  function myResult(userId: number, day: string, kind: DailyKind): DailyResult | null {
     const row = db
       .prepare<[number, string, string], { score: number; correct: number; time_ms: number }>(
         "SELECT score, correct, time_ms FROM daily_results WHERE user_id = ? AND day = ? AND kind = ?",
@@ -104,11 +126,24 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
       day,
       sprintSeed: dailySeed(day, "sprint"),
       sprintSeconds: DAILY_SPRINT_SECONDS,
-      puzzle: toPublic(generateCrossMath(dailySeed(day, "puzzle"), DAILY_PUZZLE_DIFFICULTY)),
+      puzzle: toPublic(generateCrossMath(dailyPuzzle(day, "crossmath").seed, DAILY_PUZZLE_DIFFICULTY)),
       mine: {
         sprint: userId === null ? null : myResult(userId, day, "sprint"),
         puzzle: userId === null ? null : myResult(userId, day, "puzzle"),
       },
+      extra: Object.fromEntries(
+        DAILY_EXTRA_KINDS.map((kind) => {
+          const { seed, difficulty } = dailyPuzzle(day, kind);
+          return [
+            kind,
+            {
+              difficulty,
+              puzzle: generatePublicPuzzle(kind, seed, difficulty),
+              mine: userId === null ? null : myResult(userId, day, kind),
+            },
+          ];
+        }),
+      ) as DailyInfo["extra"],
       streak: userId === null ? null : dailyStreak(db, userId, day),
     };
     res.json(info);
@@ -131,26 +166,30 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
 
   app.post("/api/daily/puzzle", requireAuth, (req, res) => {
     const parsed = puzzleBody.safeParse(req.body);
-    if (!parsed.success) return void res.status(400).json({ error: "Invalid puzzle result" });
+    if (!parsed.success) {
+      const tooFast = parsed.error.issues.some((i) => i.path[0] === "timeMs" && i.code === "too_small");
+      return void res.status(400).json({ error: tooFast ? "That was too fast to count" : "Invalid puzzle result" });
+    }
     const day = today();
-    const puzzle = toPublic(generateCrossMath(dailySeed(day, "puzzle"), DAILY_PUZZLE_DIFFICULTY));
-    if (!checkCrossMath(puzzle, parsed.data.grid).solved) {
-      return void res.status(400).json({ error: "That grid does not solve today's puzzle" });
+    const { kind, grid, path, timeMs } = parsed.data;
+    const { seed, difficulty } = dailyPuzzle(day, kind);
+    if (!verifyPuzzle(kind, seed, difficulty, { grid, path })) {
+      return void res.status(400).json({ error: "That doesn't solve today's puzzle" });
     }
     const userId = (req as AuthedRequest).userId;
-    const saved = saveDaily.run(userId, day, "puzzle", 1, 1, parsed.data.timeMs);
+    const saved = saveDaily.run(userId, day, dailyKindOf(kind), 1, 1, timeMs);
     res.status(saved.changes ? 201 : 200).json({
       firstAttempt: saved.changes > 0,
-      result: myResult(userId, day, "puzzle"),
+      result: myResult(userId, day, dailyKindOf(kind)),
       streak: dailyStreak(db, userId, day),
     });
   });
 
   app.get("/api/leaderboard", (req, res) => {
     const kind = z
-      .enum(["rating", "daily-sprint", "daily-puzzle"])
+      .enum(LEADERBOARD_KINDS as [LeaderboardKind, ...LeaderboardKind[]])
       .catch("rating")
-      .parse(req.query.kind) as LeaderboardKind;
+      .parse(req.query.kind);
     const limit = 50;
     let board: Leaderboard;
 
@@ -179,7 +218,7 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
            WHERE r.day = ? AND r.kind = ?
            ORDER BY ${sprint ? "r.score DESC, r.created_at ASC" : "r.time_ms ASC, r.created_at ASC"} LIMIT ?`,
         )
-        .all(day, sprint ? "sprint" : "puzzle", limit) as { username: string; value: number; detail: number | null }[];
+        .all(day, kind.slice("daily-".length), limit) as { username: string; value: number; detail: number | null }[];
       board = { kind, day, rows: rows.map((r, i) => ({ rank: i + 1, ...r })) };
     }
     res.json(board);

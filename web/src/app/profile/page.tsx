@@ -2,12 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { PRACTICE_MODES, type Stats } from "@matik/shared";
+import { PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@matik/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const modeLabel = (id: string) => PRACTICE_MODES.find((m) => m.id === id)?.label ?? id;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Puzzle modes are "easy" for cross-math, or "kenken:hard" and the like for the other games. */
+function puzzleLabel(mode: string) {
+  const [kind, difficulty] = mode.includes(":") ? mode.split(":") : ["crossmath", mode];
+  const info = PUZZLE_KINDS.find((k) => k.id === kind);
+  if (!info) return cap(mode);
+  const level = info.difficulties.find((d) => d.id === difficulty)?.label ?? difficulty;
+  return `${info.label}, ${level.charAt(0).toLowerCase()}${level.slice(1)}`;
+}
 
 function formatMs(ms: number) {
   const s = Math.round(ms / 1000);
@@ -57,7 +66,8 @@ export default function ProfilePage() {
   if (!stats) return <p className="notice">Loading your stats…</p>;
 
   const { practice, puzzles, duels, recent } = stats;
-  const nothingYet = practice.sessions === 0 && puzzles.solved === 0 && duels.played === 0;
+  const nothingYet =
+    practice.sessions === 0 && puzzles.solved === 0 && duels.played === 0 && stats.dailyStreak.best === 0;
 
   return (
     <section>
@@ -82,17 +92,21 @@ export default function ProfilePage() {
       ) : (
         <>
           <div className="result-figures">
-            <div className="figure">
-              <span className="num">{stats.user.rating}</span>
-              <span className="label">rating, peak {duels.peakRating}</span>
-            </div>
-            <div className="figure">
-              <span className="num">
-                {duels.won}–{duels.lost}
-                {duels.drawn > 0 && `–${duels.drawn}`}
-              </span>
-              <span className="label">duels won–lost{duels.drawn > 0 && "–drawn"}</span>
-            </div>
+            {duels.played > 0 && (
+              <>
+                <div className="figure">
+                  <span className="num">{stats.user.rating}</span>
+                  <span className="label">rating, peak {duels.peakRating}</span>
+                </div>
+                <div className="figure">
+                  <span className="num">
+                    {duels.won}–{duels.lost}
+                    {duels.drawn > 0 && `–${duels.drawn}`}
+                  </span>
+                  <span className="label">duels won–lost{duels.drawn > 0 && "–drawn"}</span>
+                </div>
+              </>
+            )}
             {stats.dailyStreak.best > 0 && (
               <div className="figure">
                 <span className="num">{stats.dailyStreak.current}</span>
@@ -187,14 +201,14 @@ export default function ProfilePage() {
               <table className="ledger">
                 <thead>
                   <tr>
-                    <th>Difficulty</th>
+                    <th>Puzzle</th>
                     <th className="r">Best time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {puzzles.fastestByDifficulty.map((p) => (
                     <tr key={p.difficulty}>
-                      <td>{cap(p.difficulty)}</td>
+                      <td>{puzzleLabel(p.difficulty)}</td>
                       <td className="r num">{formatMs(p.bestMs)}</td>
                     </tr>
                   ))}
@@ -218,7 +232,7 @@ export default function ProfilePage() {
                   {recent.map((s) => (
                     <tr key={s.id}>
                       <td>{when(s.createdAt)}</td>
-                      <td>{s.kind === "practice" ? `${modeLabel(s.mode)} sprint` : `${cap(s.mode)} puzzle`}</td>
+                      <td>{s.kind === "practice" ? `${modeLabel(s.mode)} sprint` : puzzleLabel(s.mode)}</td>
                       <td className="r num">
                         {s.kind === "practice" ? `${s.score} pts, ${s.correct}/${s.attempts}` : formatMs(s.durationMs)}
                       </td>

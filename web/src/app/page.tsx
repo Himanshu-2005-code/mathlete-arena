@@ -97,8 +97,11 @@ export default function Home() {
         </li>
         <li className="entry">
           <div>
-            <h3>Cross-math puzzles</h3>
-            <p>Fill the gaps so every row and column adds up. Multiplication and division come first.</p>
+            <h3>Puzzles</h3>
+            <p>
+              Cross-math, KenKen, Sudoku in 6×6 and 9×9, and Math Maze, where you walk a path of numbers and operators to
+              hit a target.
+            </p>
           </div>
           <Link href="/puzzles" className="btn ghost">
             Puzzles
@@ -119,7 +122,7 @@ export default function Home() {
         <li className="entry">
           <div>
             <h3>Daily challenge</h3>
-            <p>One sprint and one puzzle, the same for everyone, with a fresh leaderboard each day.</p>
+            <p>A sprint and four puzzles, the same for everyone, with fresh leaderboards and your streak each day.</p>
           </div>
           <Link href="/daily" className="btn ghost">
             Today's challenge
