@@ -17,6 +17,8 @@ import type {
 /** Where the game server lives. Set to "" in production, where one server serves everything. */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+type Streak = { current: number; best: number };
+
 const TOKEN_KEY = "matik.token";
 
 export function getToken(): string | null {
@@ -79,8 +81,8 @@ export const api = {
   stats: () => call<Stats>("/api/stats"),
   daily: () => call<DailyInfo>("/api/daily"),
   saveDailySprint: (r: DailySprintInput) =>
-    call<{ firstAttempt: boolean; result: DailyResult }>("/api/daily/sprint", { method: "POST", body: JSON.stringify(r) }),
+    call<{ firstAttempt: boolean; result: DailyResult; streak: Streak }>("/api/daily/sprint", { method: "POST", body: JSON.stringify(r) }),
   saveDailyPuzzle: (r: DailyPuzzleInput) =>
-    call<{ firstAttempt: boolean; result: DailyResult }>("/api/daily/puzzle", { method: "POST", body: JSON.stringify(r) }),
+    call<{ firstAttempt: boolean; result: DailyResult; streak: Streak }>("/api/daily/puzzle", { method: "POST", body: JSON.stringify(r) }),
   leaderboard: (kind: LeaderboardKind) => call<Leaderboard>(`/api/leaderboard?kind=${kind}`),
 };

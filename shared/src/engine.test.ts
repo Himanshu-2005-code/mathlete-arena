@@ -130,3 +130,20 @@ describe("duel helpers", () => {
     expect(dailySeed("2026-10-09", "sprint")).not.toBe(dailySeed("2026-10-09", "puzzle"));
   });
 });
+
+import { computeStreak, previousDay } from "./duel";
+
+describe("daily streaks", () => {
+  it("counts days in a row up to today or yesterday", () => {
+    expect(previousDay("2026-03-01")).toBe("2026-02-28");
+    expect(computeStreak([], "2026-10-12")).toEqual({ current: 0, best: 0 });
+    expect(computeStreak(["2026-10-10", "2026-10-11", "2026-10-12"], "2026-10-12")).toEqual({ current: 3, best: 3 });
+    // Not played yet today: yesterday's streak still stands.
+    expect(computeStreak(["2026-10-10", "2026-10-11"], "2026-10-12").current).toBe(2);
+    // A missed day breaks it, but the best run is remembered.
+    expect(computeStreak(["2026-10-01", "2026-10-02", "2026-10-03", "2026-10-05"], "2026-10-12")).toEqual({
+      current: 0,
+      best: 3,
+    });
+  });
+});

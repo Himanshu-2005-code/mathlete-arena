@@ -23,7 +23,7 @@ import {
 } from "./auth";
 import { WEB_ORIGIN } from "./config";
 import { isReservedName } from "./bots";
-import { registerCompetitionRoutes } from "./compete";
+import { dailyStreak, registerCompetitionRoutes } from "./compete";
 import type { Db } from "./db";
 
 const credentials = z.object({
@@ -223,6 +223,7 @@ export function createApp(db: Db) {
         bestByMode,
       },
       puzzles: { solved: puzzleSolved.n, fastestByDifficulty: fastest },
+      dailyStreak: dailyStreak(db, userId),
       duels: {
         played: duelRows.length,
         won: count("win"),

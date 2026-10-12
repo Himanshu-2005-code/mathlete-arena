@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { type Question, createRng, generateQuestion, randomSeed } from "@matik/shared";
+import { playCorrect } from "@/lib/sound";
 
 export default function Home() {
   const rng = useRef(createRng(randomSeed()));
@@ -25,6 +26,7 @@ export default function Home() {
     const clean = v.replace(/\D/g, "").slice(0, 4);
     setValue(clean);
     if (q && Number(clean) === q.answer) {
+      playCorrect();
       setLastMs(performance.now() - shownAt.current);
       setSolved((n) => n + 1);
       setTimeout(next, 350);

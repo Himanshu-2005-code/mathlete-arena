@@ -12,6 +12,7 @@ import {
 import { Tally } from "@/components/Tally";
 import { useAuth } from "@/lib/auth";
 import { type GameSocket, getSocket } from "@/lib/socket";
+import { playCorrect, playWrong } from "@/lib/sound";
 
 type Phase =
   | { kind: "lobby" }
@@ -39,6 +40,11 @@ export default function DuelPage() {
   const [presence, setPresence] = useState({ online: 0, searching: 0, botAfterSeconds: 0 });
   const [error, setError] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  // Rematch state on the results screen.
+  const [rematch, setRematch] = useState<{ kind: "none" } | { kind: "waiting" } | { kind: "offered"; from: string }>({
+    kind: "none",
+  });
+  const [rematchMsg, setRematchMsg] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
   // Live duel state.
@@ -69,8 +75,16 @@ export default function DuelPage() {
     s.on("queue:left", () => setPhase({ kind: "lobby" }));
     s.on("challenge:created", ({ code }) => setPhase({ kind: "hosting", code }));
     s.on("challenge:error", ({ message }) => setError(message));
+    s.on("rematch:waiting", () => setRematch({ kind: "waiting" }));
+    s.on("rematch:offered", ({ from }) => setRematch({ kind: "offered", from }));
+    s.on("rematch:declined", ({ message }) => {
+      setRematch({ kind: "none" });
+      setRematchMsg(message);
+    });
     s.on("duel:start", (d) => {
       setError("");
+      setRematch({ kind: "none" });
+      setRematchMsg("");
       setIndex(0);
       setMyScore(0);
       setTheirScore(0);
@@ -110,6 +124,9 @@ export default function DuelPage() {
         "duel:start",
         "duel:progress",
         "duel:end",
+        "rematch:waiting",
+        "rematch:offered",
+        "rematch:declined",
       ] as const)
         s.off(ev);
     };
@@ -135,6 +152,7 @@ export default function DuelPage() {
       const clean = raw.replace(/\D/g, "").slice(0, 6);
       setValue(clean);
       if (!socket || !live || !question || clean === "" || Number(clean) !== question.answer) return;
+      playCorrect();
       // Move on at once; the server confirms and keeps the real score.
       socket.emit("duel:answer", { index, value: question.answer });
       setIndex((i) => i + 1);
@@ -147,6 +165,7 @@ export default function DuelPage() {
     if (e.key !== "Enter" || value === "") return;
     setValue("");
     setShake(true);
+    playWrong();
     setTimeout(() => setShake(false), 300);
   };
 
@@ -269,10 +288,38 @@ export default function DuelPage() {
             </span>
           </div>
         </div>
+        <div aria-live="polite">
+          {rematch.kind === "offered" && (
+            <p className="notice">
+              <strong>{rematch.from}</strong> wants a rematch.
+            </p>
+          )}
+          {rematch.kind === "waiting" && <p className="notice">Waiting for {phase.opponentName} to accept…</p>}
+          {rematchMsg && <p className="notice">{rematchMsg}</p>}
+        </div>
         <div className="actions">
+          {rematch.kind === "waiting" ? (
+            <button type="button" className="btn ghost" onClick={() => {
+                socket?.emit("rematch:cancel");
+                setRematch({ kind: "none" });
+              }}>
+              Cancel rematch
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                setRematchMsg("");
+                socket?.emit("rematch:request");
+              }}
+            >
+              {rematch.kind === "offered" ? "Accept rematch" : "Rematch"}
+            </button>
+          )}
           <button
             type="button"
-            className="btn"
+            className="btn ghost"
             onClick={() => {
               setError("");
               socket?.emit("queue:join");

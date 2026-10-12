@@ -7,6 +7,7 @@ import {
   type Leaderboard,
   type LeaderboardKind,
   checkCrossMath,
+  computeStreak,
   dailySeed,
   dayKey,
   generateCrossMath,
@@ -57,6 +58,13 @@ export function scoreDailySprint(seed: number, answers: { index: number; value: 
   return { score, correct };
 }
 
+export function dailyStreak(db: Db, userId: number, day = today()) {
+  const days = (
+    db.prepare("SELECT DISTINCT day FROM daily_results WHERE user_id = ?").all(userId) as { day: string }[]
+  ).map((r) => r.day);
+  return computeStreak(days, day);
+}
+
 export function today(now = new Date()) {
   return dayKey(now, DAILY_UTC_OFFSET_MIN);
 }
@@ -101,6 +109,7 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
         sprint: userId === null ? null : myResult(userId, day, "sprint"),
         puzzle: userId === null ? null : myResult(userId, day, "puzzle"),
       },
+      streak: userId === null ? null : dailyStreak(db, userId, day),
     };
     res.json(info);
   });
@@ -113,7 +122,11 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
     if (!scored) return void res.status(400).json({ error: "Those answers don't match today's sprint" });
     const userId = (req as AuthedRequest).userId;
     const saved = saveDaily.run(userId, day, "sprint", scored.score, scored.correct, DAILY_SPRINT_SECONDS * 1000);
-    res.status(saved.changes ? 201 : 200).json({ firstAttempt: saved.changes > 0, result: myResult(userId, day, "sprint") });
+    res.status(saved.changes ? 201 : 200).json({
+      firstAttempt: saved.changes > 0,
+      result: myResult(userId, day, "sprint"),
+      streak: dailyStreak(db, userId, day),
+    });
   });
 
   app.post("/api/daily/puzzle", requireAuth, (req, res) => {
@@ -126,7 +139,11 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
     }
     const userId = (req as AuthedRequest).userId;
     const saved = saveDaily.run(userId, day, "puzzle", 1, 1, parsed.data.timeMs);
-    res.status(saved.changes ? 201 : 200).json({ firstAttempt: saved.changes > 0, result: myResult(userId, day, "puzzle") });
+    res.status(saved.changes ? 201 : 200).json({
+      firstAttempt: saved.changes > 0,
+      result: myResult(userId, day, "puzzle"),
+      streak: dailyStreak(db, userId, day),
+    });
   });
 
   app.get("/api/leaderboard", (req, res) => {

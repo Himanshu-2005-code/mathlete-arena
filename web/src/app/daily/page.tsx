@@ -6,6 +6,7 @@ import { type DailyAnswer, type DailyInfo, type DailyResult, pointsFor, sequence
 import { CrossMathBoard, type SolvedInfo, formatTime } from "@/components/CrossMathBoard";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { playCorrect } from "@/lib/sound";
 
 function Placing({ result, unit }: { result: DailyResult; unit: "sprint" | "puzzle" }) {
   return (
@@ -25,7 +26,9 @@ function Placing({ result, unit }: { result: DailyResult; unit: "sprint" | "puzz
   );
 }
 
-function DailySprint({ info, onDone }: { info: DailyInfo; onDone: (r: DailyResult | null) => void }) {
+type Streak = { current: number; best: number };
+
+function DailySprint({ info, onDone }: { info: DailyInfo; onDone: (r: DailyResult | null, s?: Streak) => void }) {
   const { user } = useAuth();
   const [phase, setPhase] = useState<"ready" | "playing" | "done">("ready");
   const [index, setIndex] = useState(0);
@@ -64,9 +67,9 @@ function DailySprint({ info, onDone }: { info: DailyInfo; onDone: (r: DailyResul
     setMsg("Saving…");
     api
       .saveDailySprint({ answers: answers.current })
-      .then(({ firstAttempt, result }) => {
+      .then(({ firstAttempt, result, streak }) => {
         setMsg(firstAttempt ? "" : "Only your first run today counts, so this one wasn't recorded.");
-        onDone(result);
+        onDone(result, streak);
       })
       .catch((e: Error) => setMsg(`Not saved: ${e.message}`));
   }, [phase, user, onDone]);
@@ -84,6 +87,7 @@ function DailySprint({ info, onDone }: { info: DailyInfo; onDone: (r: DailyResul
     const clean = raw.replace(/\D/g, "").slice(0, 6);
     setValue(clean);
     if (clean === "" || Number(clean) !== q.answer) return;
+    playCorrect();
     answers.current.push({ index, value: q.answer });
     setScore((s) => s + pointsFor(q));
     setIndex((i) => i + 1);
@@ -163,6 +167,7 @@ export default function DailyPage() {
   const [error, setError] = useState("");
   const [sprintResult, setSprintResult] = useState<DailyResult | null>(null);
   const [puzzleResult, setPuzzleResult] = useState<DailyResult | null>(null);
+  const [streak, setStreak] = useState<Streak | null>(null);
   const [puzzleMsg, setPuzzleMsg] = useState("");
   const [puzzleSolvedMs, setPuzzleSolvedMs] = useState<number | null>(null);
 
@@ -174,12 +179,14 @@ export default function DailyPage() {
         setInfo(d);
         setSprintResult(d.mine.sprint);
         setPuzzleResult(d.mine.puzzle);
+        setStreak(d.streak);
       })
       .catch((e: Error) => setError(e.message));
   }, [ready, user]);
 
-  const onSprintDone = useCallback((r: DailyResult | null) => {
+  const onSprintDone = useCallback((r: DailyResult | null, st?: Streak) => {
     if (r) setSprintResult(r);
+    if (st) setStreak(st);
   }, []);
 
   const onPuzzleSolved = useCallback(
@@ -189,8 +196,9 @@ export default function DailyPage() {
       setPuzzleMsg("Saving…");
       api
         .saveDailyPuzzle({ grid, timeMs })
-        .then(({ firstAttempt, result }) => {
+        .then(({ firstAttempt, result, streak }) => {
           setPuzzleResult(result);
+          setStreak(streak);
           setPuzzleMsg(firstAttempt ? "" : "Only your first solve today counts.");
         })
         .catch((e: Error) => setPuzzleMsg(`Not saved: ${e.message}`));
@@ -214,6 +222,20 @@ export default function DailyPage() {
         {date}. Everyone gets the same sprint and the same puzzle today, and your first try is the one that counts. A new
         challenge starts at midnight.
       </p>
+      {streak && (
+        <p className="streak">
+          {streak.current > 0 ? (
+            <>
+              <span className="num">{streak.current}</span> {streak.current === 1 ? "day" : "days"} in a row
+              {streak.best > streak.current && <span className="muted">, best {streak.best}</span>}
+            </>
+          ) : (
+            <span className="muted">
+              Play today to start a streak{streak.best > 0 ? ` (your best is ${streak.best} days)` : ""}.
+            </span>
+          )}
+        </p>
+      )}
 
       <div className="section">
         <h2>Sprint</h2>

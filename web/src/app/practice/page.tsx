@@ -17,6 +17,7 @@ import {
 import { Choices } from "@/components/Choices";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { playCorrect, playWrong } from "@/lib/sound";
 
 type Phase = "setup" | "playing" | "done";
 
@@ -96,6 +97,7 @@ export default function PracticePage() {
     const clean = raw.replace(/\D/g, "").slice(0, 6);
     setValue(clean);
     if (!question || clean === "" || Number(clean) !== question.answer) return;
+    playCorrect();
 
     const ms = performance.now() - shownAt.current;
     if (adaptive) difficulty.current.record(true, ms);
@@ -117,6 +119,7 @@ export default function PracticePage() {
     setTally((t) => ({ ...t, attempts: t.attempts + 1 }));
     setValue("");
     setShake(true);
+    playWrong();
     setTimeout(() => setShake(false), 300);
     if (adaptive) nextQuestion();
   };

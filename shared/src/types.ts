@@ -61,6 +61,7 @@ export interface Stats {
     solved: number;
     fastestByDifficulty: { difficulty: string; bestMs: number }[];
   };
+  dailyStreak: { current: number; best: number };
   duels: {
     played: number;
     won: number;
@@ -113,6 +114,8 @@ export interface DailyInfo {
   puzzle: import("./crossmath").PublicPuzzle;
   /** Present when signed in and already played today. */
   mine: { sprint: DailyResult | null; puzzle: DailyResult | null };
+  /** Days in a row with at least one daily result; null when signed out. */
+  streak: { current: number; best: number } | null;
 }
 
 export type LeaderboardKind = "rating" | "daily-sprint" | "daily-puzzle";

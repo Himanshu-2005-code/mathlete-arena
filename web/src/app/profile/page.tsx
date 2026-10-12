@@ -93,6 +93,12 @@ export default function ProfilePage() {
               </span>
               <span className="label">duels won–lost{duels.drawn > 0 && "–drawn"}</span>
             </div>
+            {stats.dailyStreak.best > 0 && (
+              <div className="figure">
+                <span className="num">{stats.dailyStreak.current}</span>
+                <span className="label">day streak, best {stats.dailyStreak.best}</span>
+              </div>
+            )}
             {practice.sessions > 0 && (
               <>
                 <div className="figure">

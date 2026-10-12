@@ -830,3 +830,64 @@ button.xcell.selected {
   border-radius: 4px;
   vertical-align: 1px;
 }
+
+.streak {
+  margin: 14px 0 0;
+  font-size: 1.1rem;
+}
+
+.streak .num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--margin-red);
+}
+
+/* ---------- Phone menu ---------- */
+
+.menu-toggle {
+  display: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    align-items: center;
+    gap: 12px;
+  }
+  .menu-toggle {
+    display: inline-block;
+    margin-left: auto;
+  }
+  .topbar nav,
+  .topbar .who {
+    display: none;
+  }
+  .topbar.open nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    font-size: 1.15rem;
+  }
+  .topbar.open nav a {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--grid);
+  }
+  .topbar.open nav a[aria-current="page"] {
+    border-bottom-color: var(--ink);
+  }
+  .topbar.open .who {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-left: 0;
+    padding-bottom: 8px;
+  }
+}

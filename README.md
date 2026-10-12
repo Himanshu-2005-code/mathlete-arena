@@ -10,10 +10,13 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - **Matchmaking**: a queue that pairs the longest-waiting players whose ratings are within 100 points, widening by 50 points for every second they wait.
 - **Computer opponents**: if nobody turns up within 10 seconds, you play a bot instead (from `hypatia_bot` at 800 to `lovelace_bot` at 1600, whichever is closest to your rating). Bots are real accounts with ratings that move, they answer on the server at a pace that depends on their rating, and they're marked "computer" on the leaderboard. Usernames ending in `_bot` are reserved.
 - **Friend challenges**: create a six-character code or link (`/duel?code=ABC234`); the duel starts when your friend joins.
+- **Rematches**: for a minute after a duel, either player can ask for a rematch; it starts when the other accepts. Computer opponents accept at once.
 - **Elo ratings**: everyone starts at 1000; K-factor 32. Draws are possible.
 - **Daily challenge**: one sprint and one medium puzzle per day, the same for everyone. Only your first attempt counts. The server replays every sprint answer against the day's seed and checks the puzzle grid before ranking you. Days roll over at midnight IST (configurable).
+- **Daily streaks**: days in a row with at least one daily result, shown on the daily page and your profile, with your best run. Today's streak holds until midnight even if you haven't played yet.
 - **Leaderboards**: duel rating, today's sprint (points) and today's puzzle (fastest time).
 - **Live scoreboard**: both scores drawn as tally marks while you play.
+- **Sound and phones**: short synthesized blips for right and wrong answers (toggle in the top bar, remembered per browser), and a collapsible menu on narrow screens.
 
 **Solo (phase 1)**
 
@@ -138,20 +141,18 @@ web/src/
 
 ### Socket events
 
-Client to server: `queue:join`, `queue:leave`, `challenge:create`, `challenge:join {code}`, `challenge:cancel`, `duel:answer {index, value}`, `duel:forfeit`.
+Client to server: `queue:join`, `queue:leave`, `challenge:create`, `challenge:join {code}`, `challenge:cancel`, `duel:answer {index, value}`, `duel:forfeit`, `rematch:request`, `rematch:cancel`.
 
-Server to client: `presence`, `queue:joined`, `queue:left`, `challenge:created {code}`, `challenge:error`, `duel:start`, `duel:progress`, `duel:wrong`, `duel:end`.
+Server to client: `presence`, `queue:joined`, `queue:left`, `challenge:created {code}`, `challenge:error`, `duel:start`, `duel:progress`, `duel:wrong`, `duel:end`, `rematch:offered {from}`, `rematch:waiting {opponent}`, `rematch:declined {message}`.
 
 Sockets authenticate with the same JWT as the REST API (`auth: { token }`).
 
 ## Roadmap
 
-- Rematch button and spectating
-- Compact navigation on phones
-- Daily streaks
+- Spectating live duels
 - Seasonal ratings and weekly leaderboards
 - More puzzle types (KenKen-style, number targets)
-- Streaks and achievements
+- Achievements
 - Mobile app (React Native) reusing `shared/`
 
 ## Limits

@@ -170,9 +170,11 @@ describe("daily challenge", () => {
     const board = (await request(app).get("/api/leaderboard?kind=daily-sprint")).body;
     expect(board.rows.map((r: { username: string }) => r.username)).toEqual(["daytwo", "dayone"]);
 
-    const mine = (await request(app).get("/api/daily").set("Authorization", `Bearer ${t1}`)).body.mine;
-    expect(mine.sprint.correct).toBe(5);
-    expect(mine.puzzle).toBeNull();
+    const info = (await request(app).get("/api/daily").set("Authorization", `Bearer ${t1}`)).body;
+    expect(info.mine.sprint.correct).toBe(5);
+    expect(info.mine.puzzle).toBeNull();
+    expect(info.streak).toEqual({ current: 1, best: 1 });
+    expect((await request(app).get("/api/daily")).body.streak).toBeNull();
   });
 });
 
@@ -223,5 +225,59 @@ describe("computer opponents", () => {
     expect(res.status).toBe(400);
     const login = await request(app).post("/api/auth/login").send({ username: "euler_bot", password: "anything1" });
     expect(login.status).toBe(401);
+  });
+});
+
+describe("rematches", () => {
+  it("starts a new duel when both players ask, and tells the asker while waiting", async () => {
+    const { player } = await setup(300);
+    const a = await player("ann");
+    const b = await player("ben");
+    const startA = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const first = await startA;
+    await Promise.all([once(a.sock, "duel:end"), once(b.sock, "duel:end")]);
+
+    const waiting = once(a.sock, "rematch:waiting");
+    const offered = once(b.sock, "rematch:offered");
+    a.sock.emit("rematch:request");
+    expect(await waiting).toEqual({ opponent: "ben" });
+    expect(await offered).toEqual({ from: "ann" });
+
+    const again = once(a.sock, "duel:start");
+    b.sock.emit("rematch:request");
+    const second = await again;
+    expect(second.opponent.username).toBe("ben");
+    expect(second.seed).not.toBe(first.seed);
+  });
+
+  it("tells the asker when the other player declines by looking for someone else", async () => {
+    const { player } = await setup(300);
+    const a = await player("cara");
+    const b = await player("dev1");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    await Promise.all([once(a.sock, "duel:end"), once(b.sock, "duel:end")]);
+
+    const offered = once(b.sock, "rematch:offered");
+    a.sock.emit("rematch:request");
+    await offered;
+    const declined = once(a.sock, "rematch:declined");
+    b.sock.emit("queue:join");
+    expect((await declined).message).toMatch(/declined/);
+  });
+
+  it("lets you rematch a computer opponent straight away", async () => {
+    const { player } = await setup(300, { botAfterMs: 50, botRand: () => 0.5 });
+    const a = await player("solo1");
+    const first = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    const d1 = await first;
+    await once(a.sock, "duel:end");
+    const second = once(a.sock, "duel:start");
+    a.sock.emit("rematch:request");
+    const d2 = await second;
+    expect(d2.opponent).toMatchObject({ username: d1.opponent.username, bot: true });
   });
 });

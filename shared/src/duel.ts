@@ -75,6 +75,11 @@ export interface ServerToClientEvents {
   }) => void;
   "duel:progress": (p: { you: number; opponent: number; yourIndex: number }) => void;
   "duel:wrong": (w: { index: number }) => void;
+  /** Your opponent asked for a rematch; send rematch:request to accept. */
+  "rematch:offered": (r: { from: string }) => void;
+  /** Your rematch request is waiting for the opponent. */
+  "rematch:waiting": (r: { opponent: string }) => void;
+  "rematch:declined": (r: { message: string }) => void;
   "duel:end": (e: {
     outcome: DuelOutcome;
     reason: DuelEndReason;
@@ -94,4 +99,40 @@ export interface ClientToServerEvents {
   "challenge:cancel": () => void;
   "duel:answer": (a: { index: number; value: number }) => void;
   "duel:forfeit": () => void;
+  /** Ask for (or accept) a rematch against your last opponent. */
+  "rematch:request": () => void;
+  "rematch:cancel": () => void;
+}
+
+/** How long after a duel a rematch can still be requested. */
+export const REMATCH_WINDOW_MS = 60_000;
+
+/** The day before a "YYYY-MM-DD" key. */
+export function previousDay(day: string): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Streaks from the days someone played the daily challenge. The current streak
+ * survives until the end of today, so playing yesterday but not yet today still counts.
+ */
+export function computeStreak(days: string[], today: string): { current: number; best: number } {
+  const set = new Set(days);
+  let current = 0;
+  let cursor = set.has(today) ? today : previousDay(today);
+  while (set.has(cursor)) {
+    current++;
+    cursor = previousDay(cursor);
+  }
+  let best = 0;
+  let run = 0;
+  let prev: string | null = null;
+  for (const d of [...set].sort()) {
+    run = prev !== null && previousDay(d) === prev ? run + 1 : 1;
+    best = Math.max(best, run);
+    prev = d;
+  }
+  return { current, best };
 }
