@@ -8,6 +8,7 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 
 - **Live duels**: two players race through the same questions for 60 seconds over Socket.io; most right answers wins. The server generates every question from the duel seed, checks each answer and keeps the score, so a client can't fake a result. Leaving or resigning mid-duel is a loss.
 - **Matchmaking**: a queue that pairs the longest-waiting players whose ratings are within 100 points, widening by 50 points for every second they wait.
+- **Computer opponents**: if nobody turns up within 10 seconds, you play a bot instead (from `hypatia_bot` at 800 to `lovelace_bot` at 1600, whichever is closest to your rating). Bots are real accounts with ratings that move, they answer on the server at a pace that depends on their rating, and they're marked "computer" on the leaderboard. Usernames ending in `_bot` are reserved.
 - **Friend challenges**: create a six-character code or link (`/duel?code=ABC234`); the duel starts when your friend joins.
 - **Elo ratings**: everyone starts at 1000; K-factor 32. Draws are possible.
 - **Daily challenge**: one sprint and one medium puzzle per day, the same for everyone. Only your first attempt counts. The server replays every sprint answer against the day's seed and checks the puzzle grid before ranking you. Days roll over at midnight IST (configurable).
@@ -61,7 +62,39 @@ npm start         # run the built app and the server
 | `WEB_ORIGIN` | server | `http://localhost:3000` (CORS) |
 | `DB_PATH` | server | `server/data/matik.db` |
 | `DAILY_UTC_OFFSET_MIN` | server | `330` (daily challenge rolls over at midnight IST) |
-| `NEXT_PUBLIC_API_URL` | web | `http://localhost:4000` |
+| `BOT_AFTER_SECONDS` | server | `10` (seconds in the queue before a computer opponent steps in; `0` turns bots off) |
+| `SERVE_WEB` | server | unset (set to `1` by `npm run start:prod` so one server serves the site too) |
+| `NEXT_PUBLIC_API_URL` | web | `http://localhost:4000` (empty in production builds, meaning same origin) |
+
+## Deploying
+
+In production one Node process serves everything: the API, the Socket.io duels and the Next.js site, on `$PORT`. Build and run it with:
+
+```bash
+npm ci
+npm run build:prod   # builds the site to talk to its own origin
+JWT_SECRET=some-long-random-string npm run start:prod
+```
+
+`start:prod` refuses to start without `JWT_SECRET`. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
+
+### Render (recommended)
+
+The repo includes a `Dockerfile` and a `render.yaml` blueprint.
+
+1. Sign in at [render.com](https://render.com) with GitHub.
+2. New > Blueprint, and pick this repo. Render reads `render.yaml`, builds the Dockerfile, generates `JWT_SECRET`, and mounts a 1 GB disk at `/data` for the database.
+3. Open the `onrender.com` URL it gives you. Every push to `main` redeploys.
+
+The disk needs a paid instance (Starter). To try it on the free plan, delete the `disk` block from `render.yaml` first; it works, but the database resets on each deploy and the free instance sleeps when idle.
+
+### Railway or Fly.io
+
+Both build the `Dockerfile` as is. Add a volume mounted at `/data` and set `JWT_SECRET`. The container listens on `$PORT` (default 8080) and answers health checks at `/api/health`.
+
+### CI
+
+`.github/workflows/ci.yml` runs the type check, the tests and a production build on every push to `main` and every pull request.
 
 ## Project layout
 
@@ -77,6 +110,7 @@ server/src/
   app.ts          REST routes: auth, results, stats, puzzles
   compete.ts      daily challenge and leaderboard routes
   duels.ts        matchmaking queue, friend challenges, live duels, Elo
+  bots.ts         computer opponents: accounts, pacing, matching
   auth.ts         password hashing, JWT, auth middleware
   db.ts           SQLite schema
   socket.ts       authenticated Socket.io wired to the duel manager
@@ -113,6 +147,8 @@ Sockets authenticate with the same JWT as the REST API (`auth: { token }`).
 ## Roadmap
 
 - Rematch button and spectating
+- Compact navigation on phones
+- Daily streaks
 - Seasonal ratings and weekly leaderboards
 - More puzzle types (KenKen-style, number targets)
 - Streaks and achievements

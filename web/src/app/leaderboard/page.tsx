@@ -71,7 +71,10 @@ export default function LeaderboardPage() {
               {board.rows.map((r) => (
                 <tr key={r.username} className={user?.username === r.username ? "me" : undefined}>
                   <td className="r num">{r.rank}</td>
-                  <td>{r.username}</td>
+                  <td>
+                    {r.username}
+                    {r.bot && <span className="tag">computer</span>}
+                  </td>
                   <td className="r num">{kind === "daily-puzzle" ? formatTime(r.value) : r.value}</td>
                   {cols.detail && <td className="r num">{r.detail}</td>}
                 </tr>

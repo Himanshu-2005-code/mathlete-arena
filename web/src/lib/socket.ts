@@ -13,7 +13,9 @@ export function getSocket(): GameSocket | null {
   const token = getToken();
   if (!token) return null;
   if (!socket) {
-    socket = io(API_URL, { auth: { token }, transports: ["websocket"] });
+    const opts = { auth: { token }, transports: ["websocket"] };
+    // An empty API_URL means the game is served from the same origin.
+    socket = API_URL ? io(API_URL, opts) : io(opts);
   }
   return socket;
 }

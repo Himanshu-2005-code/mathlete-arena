@@ -22,6 +22,7 @@ import {
   verifyPassword,
 } from "./auth";
 import { WEB_ORIGIN } from "./config";
+import { isReservedName } from "./bots";
 import { registerCompetitionRoutes } from "./compete";
 import type { Db } from "./db";
 
@@ -78,6 +79,9 @@ export function createApp(db: Db) {
     const parsed = credentials.safeParse(req.body);
     if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
     const { username, password } = parsed.data;
+    if (isReservedName(username)) {
+      return void res.status(400).json({ error: "Usernames ending in _bot are kept for computer opponents" });
+    }
     if (findByName.get(username)) return void res.status(409).json({ error: "That username is taken" });
 
     const info = insertUser.run(username, await hashPassword(password));

@@ -5,7 +5,7 @@ import { type Socket, io as connect } from "socket.io-client";
 import { afterEach, describe, expect, it } from "vitest";
 import { type ClientToServerEvents, type ServerToClientEvents, sequenceQuestion } from "@matik/shared";
 import { createApp } from "./app";
-import { allowedGap } from "./duels";
+import { type DuelOptions, allowedGap } from "./duels";
 import { openDb } from "./db";
 import { attachSocket } from "./socket";
 
@@ -16,11 +16,17 @@ afterEach(() => {
   while (cleanups.length) cleanups.pop()!();
 });
 
-async function setup(durationMs = 1500) {
+async function setup(durationMs = 1500, extra: DuelOptions = {}) {
   const db = openDb(":memory:");
   const app = createApp(db);
   const server = http.createServer(app);
-  const { io, duels } = attachSocket(server, db, { durationMs, countdownMs: 100, matchIntervalMs: 50 });
+  const { io, duels } = attachSocket(server, db, {
+    durationMs,
+    countdownMs: 100,
+    matchIntervalMs: 50,
+    botAfterMs: 0,
+    ...extra,
+  });
   await new Promise<void>((r) => server.listen(0, r));
   const url = `http://localhost:${(server.address() as AddressInfo).port}`;
   cleanups.push(() => {
@@ -167,5 +173,55 @@ describe("daily challenge", () => {
     const mine = (await request(app).get("/api/daily").set("Authorization", `Bearer ${t1}`)).body.mine;
     expect(mine.sprint.correct).toBe(5);
     expect(mine.puzzle).toBeNull();
+  });
+});
+
+describe("computer opponents", () => {
+  it("steps in when nobody else is searching, plays on the server, and moves ratings", async () => {
+    const { app, player } = await setup(5000, { botAfterMs: 150, botRand: () => 0.5 });
+    const a = await player("lonely");
+
+    const start = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    const d = await start;
+    expect(d.opponent.bot).toBe(true);
+    expect(d.opponent.username).toBe("euler_bot"); // closest to 1000
+    expect(d.you.bot).toBeUndefined();
+
+    await sleep(d.startsAt - Date.now() + 20);
+    for (let i = 0; i < 4; i++) {
+      const p = once(a.sock, "duel:progress");
+      a.sock.emit("duel:answer", { index: i, value: sequenceQuestion(d.seed, i).answer });
+      await p;
+    }
+
+    const end = await once(a.sock, "duel:end");
+    expect(end.you).toBe(4);
+    expect(end.opponent).toBeGreaterThanOrEqual(1); // the bot scored on its own
+    expect(end.outcome).toBe("win");
+    expect(end.ratingChange).toBeGreaterThan(0);
+
+    const board = (await request(app).get("/api/leaderboard?kind=rating")).body;
+    const bot = board.rows.find((r: { username: string }) => r.username === "euler_bot");
+    expect(bot).toMatchObject({ bot: true, detail: 1 });
+    expect(bot.value).toBeLessThan(950);
+  }, 15_000);
+
+  it("waits for a human first and never pairs bots when turned off", async () => {
+    const { player } = await setup(1500, { botAfterMs: 0 });
+    const a = await player("patient");
+    let started = false;
+    a.sock.on("duel:start", () => (started = true));
+    a.sock.emit("queue:join");
+    await sleep(500);
+    expect(started).toBe(false);
+  });
+
+  it("keeps _bot usernames for computer opponents", async () => {
+    const { app } = await setup();
+    const res = await request(app).post("/api/auth/register").send({ username: "sneaky_bot", password: "secret123" });
+    expect(res.status).toBe(400);
+    const login = await request(app).post("/api/auth/login").send({ username: "euler_bot", password: "anything1" });
+    expect(login.status).toBe(401);
   });
 });

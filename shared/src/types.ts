@@ -123,6 +123,8 @@ export interface LeaderboardRow {
   value: number;
   /** Secondary figure: games played (rating) or answers right (sprint). */
   detail: number | null;
+  /** True for a computer opponent. */
+  bot?: boolean;
 }
 
 export interface Leaderboard {

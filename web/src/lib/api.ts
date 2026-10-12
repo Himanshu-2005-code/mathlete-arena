@@ -14,6 +14,7 @@ import type {
   Stats,
 } from "@matik/shared";
 
+/** Where the game server lives. Set to "" in production, where one server serves everything. */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 const TOKEN_KEY = "matik.token";

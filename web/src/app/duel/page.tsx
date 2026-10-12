@@ -36,7 +36,7 @@ export default function DuelPage() {
   const [socket, setSocket] = useState<GameSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<Phase>({ kind: "lobby" });
-  const [presence, setPresence] = useState({ online: 0, searching: 0 });
+  const [presence, setPresence] = useState({ online: 0, searching: 0, botAfterSeconds: 0 });
   const [error, setError] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -183,6 +183,7 @@ export default function DuelPage() {
           <h1>
             {live.opponent.username} <span className="muted">({live.opponent.rating})</span>
           </h1>
+          {live.opponent.bot && <p className="muted">A computer opponent, since nobody near your rating was free.</p>}
           <p className="countdown num">{Math.ceil((live.startsAt - now) / 1000)}</p>
           <p className="muted">Same questions for both of you. Most right answers in a minute wins.</p>
         </section>
@@ -319,6 +320,8 @@ export default function DuelPage() {
           <p className="muted">
             Searching for {Math.floor((now - phase.since) / 1000)}s. The longer you wait, the wider the rating range we
             match you with.
+            {presence.botAfterSeconds > 0 &&
+              ` If nobody turns up within ${presence.botAfterSeconds} seconds, you'll play a computer opponent instead.`}
           </p>
           <div className="actions">
             <button type="button" className="btn ghost" onClick={() => socket?.emit("queue:leave")}>

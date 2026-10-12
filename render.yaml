@@ -1,0 +1,22 @@
+# Render Blueprint: New > Blueprint, pick this repo, and Render builds the Dockerfile.
+services:
+  - type: web
+    name: matik
+    runtime: docker
+    # Disks need a paid instance. On the free plan, remove the disk block:
+    # the game still runs, but accounts and ratings reset on every deploy.
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: /data/matik.db
+      - key: BOT_AFTER_SECONDS
+        value: "10"
+      - key: DAILY_UTC_OFFSET_MIN
+        value: "330"
+    disk:
+      name: matik-data
+      mountPath: /data
+      sizeGB: 1

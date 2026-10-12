@@ -68,6 +68,12 @@ export function openDb(file = DB_PATH) {
       PRIMARY KEY (user_id, day, kind)
     );
   `);
+
+  // Added after the first release: flag computer opponents.
+  const cols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+  if (!cols.some((c) => c.name === "is_bot")) {
+    db.exec("ALTER TABLE users ADD COLUMN is_bot INTEGER NOT NULL DEFAULT 0");
+  }
   return db;
 }
 

@@ -819,3 +819,14 @@ button.xcell.selected {
     grid-column: 1 / -1;
   }
 }
+
+.tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 0.8rem;
+  color: var(--pencil);
+  border: 1px solid var(--grid);
+  border-radius: 4px;
+  vertical-align: 1px;
+}

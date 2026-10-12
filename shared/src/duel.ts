@@ -54,11 +54,13 @@ export interface DuelPlayerInfo {
   id: number;
   username: string;
   rating: number;
+  /** True for a computer opponent. */
+  bot?: boolean;
 }
 
 /** Server -> client events. */
 export interface ServerToClientEvents {
-  presence: (p: { online: number; searching: number }) => void;
+  presence: (p: { online: number; searching: number; botAfterSeconds: number }) => void;
   "queue:joined": () => void;
   "queue:left": () => void;
   "challenge:created": (c: { code: string }) => void;

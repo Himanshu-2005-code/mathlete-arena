@@ -140,14 +140,18 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
     if (kind === "rating") {
       const rows = db
         .prepare(
-          `SELECT u.username, u.rating AS value,
+          `SELECT u.username, u.rating AS value, u.is_bot AS bot,
                   (SELECT COUNT(*) FROM duels d WHERE d.p1_id = u.id OR d.p2_id = u.id) AS detail
            FROM users u
            WHERE EXISTS (SELECT 1 FROM duels d WHERE d.p1_id = u.id OR d.p2_id = u.id)
            ORDER BY u.rating DESC, u.id ASC LIMIT ?`,
         )
-        .all(limit) as { username: string; value: number; detail: number }[];
-      board = { kind, day: null, rows: rows.map((r, i) => ({ rank: i + 1, ...r })) };
+        .all(limit) as { username: string; value: number; detail: number; bot: number }[];
+      board = {
+        kind,
+        day: null,
+        rows: rows.map(({ bot, ...r }, i) => ({ rank: i + 1, ...r, ...(bot ? { bot: true } : {}) })),
+      };
     } else {
       const day = today();
       const sprint = kind === "daily-sprint";

@@ -13,6 +13,7 @@ import {
   sequenceQuestion,
 } from "@matik/shared";
 import type { UserRow } from "./auth";
+import { BOT_MISS_CHANCE, botThinkMs, ensureBots, pickBot } from "./bots";
 import type { Db } from "./db";
 
 type IO = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -23,9 +24,14 @@ export interface DuelOptions {
   countdownMs?: number;
   /** How often the queue looks for pairs. */
   matchIntervalMs?: number;
+  /** Time in the queue before a computer opponent steps in; 0 disables bots. */
+  botAfterMs?: number;
+  /** Randomness for bot timing, injectable for tests. */
+  botRand?: () => number;
 }
 
 interface Player extends DuelPlayerInfo {
+  /** Empty for bots, which have no connection. */
   socketId: string;
 }
 
@@ -42,6 +48,7 @@ interface Duel {
   endsAt: number;
   sides: [Side, Side];
   timer: NodeJS.Timeout;
+  botTimers: NodeJS.Timeout[];
   over: boolean;
 }
 
@@ -72,6 +79,8 @@ export class DuelManager {
   private matchTimer: NodeJS.Timeout;
   private durationMs: number;
   private countdownMs: number;
+  private botAfterMs: number;
+  private botRand: () => number;
 
   constructor(
     private io: IO,
@@ -80,12 +89,18 @@ export class DuelManager {
   ) {
     this.durationMs = opts.durationMs ?? DUEL_SECONDS * 1000;
     this.countdownMs = opts.countdownMs ?? DUEL_COUNTDOWN_MS;
+    this.botAfterMs = opts.botAfterMs ?? 10_000;
+    this.botRand = opts.botRand ?? Math.random;
+    if (this.botAfterMs > 0) ensureBots(db);
     this.matchTimer = setInterval(() => this.matchQueue(), opts.matchIntervalMs ?? 1000);
   }
 
   close() {
     clearInterval(this.matchTimer);
-    for (const duel of new Set(this.duelByUser.values())) clearTimeout(duel.timer);
+    for (const duel of new Set(this.duelByUser.values())) {
+      clearTimeout(duel.timer);
+      duel.botTimers.forEach(clearTimeout);
+    }
   }
 
   private loadPlayer(userId: number, socketId: string): Player | null {
@@ -94,7 +109,21 @@ export class DuelManager {
   }
 
   private broadcastPresence() {
-    this.io.emit("presence", { online: this.online.size, searching: this.queue.size });
+    this.io.emit("presence", {
+      online: this.online.size,
+      searching: this.queue.size,
+      botAfterSeconds: Math.round(this.botAfterMs / 1000),
+    });
+  }
+
+  /** Send to a player's connection; bots have none. */
+  private send<E extends keyof ServerToClientEvents>(
+    p: Player,
+    event: E,
+    ...args: Parameters<ServerToClientEvents[E]>
+  ) {
+    if (p.bot || !p.socketId) return;
+    (this.io.to(p.socketId).emit as (e: E, ...a: Parameters<ServerToClientEvents[E]>) => boolean)(event, ...args);
   }
 
   /** Is this user already busy in the queue, a challenge or a duel? */
@@ -201,7 +230,20 @@ export class DuelManager {
         }
       }
     }
-    if (paired.size) this.broadcastPresence();
+
+    // Nobody close enough has turned up: hand long waiters a computer opponent.
+    let botMatched = false;
+    if (this.botAfterMs > 0) {
+      for (const w of waiting) {
+        if (paired.has(w.player.id) || now - w.since < this.botAfterMs) continue;
+        const bot = pickBot(this.db, w.player.rating);
+        if (!bot) break;
+        this.queue.delete(w.player.id);
+        this.startDuel(w.player, { id: bot.id, username: bot.username, rating: bot.rating, bot: true, socketId: "" });
+        botMatched = true;
+      }
+    }
+    if (paired.size || botMatched) this.broadcastPresence();
   }
 
   private startDuel(a: Player, b: Player) {
@@ -216,17 +258,24 @@ export class DuelManager {
         { player: b, score: 0, index: 0 },
       ],
       timer: setTimeout(() => this.finish(duel, "time"), this.countdownMs + this.durationMs),
+      botTimers: [],
       over: false,
     };
-    this.duelByUser.set(a.id, duel);
-    this.duelByUser.set(b.id, duel);
+    // Bots can play several people at once, so only humans are tracked by id.
+    if (!a.bot) this.duelByUser.set(a.id, duel);
+    if (!b.bot) this.duelByUser.set(b.id, duel);
 
-    const info = (p: Player): DuelPlayerInfo => ({ id: p.id, username: p.username, rating: p.rating });
+    const info = (p: Player): DuelPlayerInfo => ({
+      id: p.id,
+      username: p.username,
+      rating: p.rating,
+      ...(p.bot ? { bot: true } : {}),
+    });
     for (const [me, them] of [
       [a, b],
       [b, a],
     ] as const) {
-      this.io.to(me.socketId).emit("duel:start", {
+      this.send(me, "duel:start", {
         duelId: duel.id,
         seed: duel.seed,
         startsAt: duel.startsAt,
@@ -235,6 +284,32 @@ export class DuelManager {
         opponent: info(them),
       });
     }
+    for (const side of duel.sides) if (side.player.bot) this.scheduleBot(duel, side, duel.startsAt - now);
+  }
+
+  /** Queue the bot's next answer; it occasionally fumbles and takes longer. */
+  private scheduleBot(duel: Duel, side: Side, delay: number) {
+    const think = botThinkMs(side.player.rating, side.index, this.botRand);
+    duel.botTimers.push(
+      setTimeout(() => {
+        if (duel.over || Date.now() > duel.endsAt) return;
+        if (this.botRand() < BOT_MISS_CHANCE) return this.scheduleBot(duel, side, 0);
+        this.scoreCorrect(duel, side);
+        this.scheduleBot(duel, side, 0);
+      }, delay + think),
+    );
+  }
+
+  private other(duel: Duel, side: Side): Side {
+    return duel.sides[0] === side ? duel.sides[1] : duel.sides[0];
+  }
+
+  private scoreCorrect(duel: Duel, me: Side) {
+    const them = this.other(duel, me);
+    me.score++;
+    me.index++;
+    this.send(me.player, "duel:progress", { you: me.score, opponent: them.score, yourIndex: me.index });
+    this.send(them.player, "duel:progress", { you: them.score, opponent: me.score, yourIndex: them.index });
   }
 
   private sideOf(duel: Duel, userId: number): [Side, Side] {
@@ -244,7 +319,7 @@ export class DuelManager {
   private answer(userId: number, socketId: string, a: { index: number; value: number }) {
     const duel = this.duelByUser.get(userId);
     if (!duel || duel.over) return;
-    const [me, them] = this.sideOf(duel, userId);
+    const [me] = this.sideOf(duel, userId);
     if (me.player.socketId !== socketId) return;
     const now = Date.now();
     if (now < duel.startsAt || now > duel.endsAt) return;
@@ -254,10 +329,7 @@ export class DuelManager {
       this.io.to(socketId).emit("duel:wrong", { index: me.index });
       return;
     }
-    me.score++;
-    me.index++;
-    this.io.to(me.player.socketId).emit("duel:progress", { you: me.score, opponent: them.score, yourIndex: me.index });
-    this.io.to(them.player.socketId).emit("duel:progress", { you: them.score, opponent: me.score, yourIndex: them.index });
+    this.scoreCorrect(duel, me);
   }
 
   private forfeit(userId: number, socketId: string) {
@@ -272,6 +344,7 @@ export class DuelManager {
     if (duel.over) return;
     duel.over = true;
     clearTimeout(duel.timer);
+    duel.botTimers.forEach(clearTimeout);
     const [s1, s2] = duel.sides;
     this.duelByUser.delete(s1.player.id);
     this.duelByUser.delete(s2.player.id);
@@ -301,7 +374,7 @@ export class DuelManager {
     })();
 
     const outcome = (mine: 0 | 0.5 | 1): DuelOutcome => (mine === 1 ? "win" : mine === 0 ? "loss" : "draw");
-    this.io.to(s1.player.socketId).emit("duel:end", {
+    this.send(s1.player, "duel:end", {
       outcome: outcome(result1),
       reason,
       you: s1.score,
@@ -309,7 +382,7 @@ export class DuelManager {
       rating: n1,
       ratingChange: n1 - r1,
     });
-    this.io.to(s2.player.socketId).emit("duel:end", {
+    this.send(s2.player, "duel:end", {
       outcome: outcome((1 - result1) as 0 | 0.5 | 1),
       reason,
       you: s2.score,
