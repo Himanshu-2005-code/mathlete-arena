@@ -1115,3 +1115,105 @@ button.xcell.selected {
     --cell: calc((100vw - 90px) / var(--n, 6));
   }
 }
+
+/* ---------- Hectoc and Make 24 ---------- */
+
+.expr-board {
+  margin-top: 24px;
+  max-width: 640px;
+}
+
+.expr-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 18px;
+}
+
+.tile.big {
+  min-width: 60px;
+  height: 64px;
+  font-size: 1.8rem;
+}
+
+.tile.used {
+  opacity: 0.3;
+}
+
+.expr-input {
+  max-width: none;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.expr-live {
+  min-height: 1.6em;
+  margin: 8px 0 12px;
+  font-size: 1.1rem;
+}
+
+.expr-live .num {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.expr-done {
+  margin-top: 16px;
+  color: var(--pencil);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Arcade ---------- */
+
+.flash-stage {
+  display: grid;
+  place-items: center;
+  min-height: clamp(160px, 30vw, 260px);
+  margin-top: 16px;
+}
+
+.flash-num {
+  font-size: clamp(5rem, 18vw, 11rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.memory-num {
+  font-size: clamp(2.2rem, 7vw, 5rem);
+  letter-spacing: 0.06em;
+  word-break: break-all;
+  text-align: center;
+}
+
+.memory-form {
+  margin-top: 28px;
+  max-width: 520px;
+}
+
+.memory-form label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.memory-input {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 480px) {
+  .expr-numbers {
+    gap: 6px;
+  }
+  .tile.big {
+    min-width: 0;
+    flex: 1 1 0;
+    height: 54px;
+    font-size: 1.5rem;
+    padding: 0;
+  }
+}

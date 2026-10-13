@@ -22,7 +22,7 @@ import {
   sequenceQuestion,
   toPublic,
 } from "@matik/shared";
-import { answerGrid, answerPath, puzzleKind } from "./schemas";
+import { answerExpressions, answerGrid, answerPath, puzzleKind } from "./schemas";
 import { type AuthedRequest, requireAuth, verifyToken } from "./auth";
 import { DAILY_UTC_OFFSET_MIN } from "./config";
 import type { Db } from "./db";
@@ -42,13 +42,14 @@ const puzzleBody = z.object({
   kind: puzzleKind.default("crossmath"),
   grid: answerGrid.optional(),
   path: answerPath.optional(),
+  expressions: answerExpressions.optional(),
   timeMs: z.number().int().min(1000).max(24 * 3600_000),
 });
 
 type DailyKind = "sprint" | "puzzle" | DailyExtraKind;
 
 /** Cross-math was the first daily puzzle and is stored as "puzzle". */
-const dailyKindOf = (kind: PuzzleKind): DailyKind => (kind === "crossmath" ? "puzzle" : kind);
+const dailyKindOf = (kind: Exclude<PuzzleKind, "make24">): DailyKind => (kind === "crossmath" ? "puzzle" : kind);
 
 /** Today's puzzle of a kind: same seed and difficulty for everyone. */
 export function dailyPuzzle(day: string, kind: PuzzleKind) {
@@ -171,9 +172,10 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
       return void res.status(400).json({ error: tooFast ? "That was too fast to count" : "Invalid puzzle result" });
     }
     const day = today();
-    const { kind, grid, path, timeMs } = parsed.data;
+    const { kind, grid, path, expressions, timeMs } = parsed.data;
+    if (kind === "make24") return void res.status(400).json({ error: "Make 24 isn't part of the daily challenge" });
     const { seed, difficulty } = dailyPuzzle(day, kind);
-    if (!verifyPuzzle(kind, seed, difficulty, { grid, path })) {
+    if (!verifyPuzzle(kind, seed, difficulty, { grid, path, expressions })) {
       return void res.status(400).json({ error: "That doesn't solve today's puzzle" });
     }
     const userId = (req as AuthedRequest).userId;
@@ -208,6 +210,17 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
         day: null,
         rows: rows.map(({ bot, ...r }, i) => ({ rank: i + 1, ...r, ...(bot ? { bot: true } : {}) })),
       };
+    } else if (kind.startsWith("arcade-")) {
+      // All-time bests, one row per player.
+      const rows = db
+        .prepare(
+          `SELECT u.username, MAX(a.score) AS value, COUNT(*) AS detail
+           FROM arcade_results a JOIN users u ON u.id = a.user_id
+           WHERE a.game = ?
+           GROUP BY a.user_id ORDER BY value DESC, MIN(a.created_at) ASC LIMIT ?`,
+        )
+        .all(kind.slice("arcade-".length), limit) as { username: string; value: number; detail: number }[];
+      board = { kind, day: null, rows: rows.map((r, i) => ({ rank: i + 1, ...r })) };
     } else {
       const day = today();
       const sprint = kind === "daily-sprint";

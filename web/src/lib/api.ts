@@ -1,4 +1,6 @@
 import type {
+  ArcadeGame,
+  ArcadeResult,
   AuthResponse,
   DailyInfo,
   DailyResult,
@@ -84,5 +86,7 @@ export const api = {
     call<{ firstAttempt: boolean; result: DailyResult; streak: Streak }>("/api/daily/sprint", { method: "POST", body: JSON.stringify(r) }),
   saveDailyPuzzle: (r: DailyPuzzleInput) =>
     call<{ firstAttempt: boolean; result: DailyResult; streak: Streak }>("/api/daily/puzzle", { method: "POST", body: JSON.stringify(r) }),
+  saveArcade: (game: ArcadeGame, score: number) =>
+    call<ArcadeResult>("/api/arcade", { method: "POST", body: JSON.stringify({ game, score }) }),
   leaderboard: (kind: LeaderboardKind) => call<Leaderboard>(`/api/leaderboard?kind=${kind}`),
 };

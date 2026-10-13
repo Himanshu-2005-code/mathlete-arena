@@ -1,6 +1,6 @@
 # matik-game
 
-A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, and four puzzle games: cross-math, KenKen, Sudoku and Math Maze.
+A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, six puzzle games (cross-math, KenKen, Sudoku, Math Maze, Hectoc, Make 24) and two arcade games (Flash Anzan, Number Memory).
 
 ## Features
 
@@ -12,9 +12,9 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - **Friend challenges**: create a six-character code or link (`/duel?code=ABC234`); the duel starts when your friend joins.
 - **Rematches**: for a minute after a duel, either player can ask for a rematch; it starts when the other accepts. Computer opponents accept at once.
 - **Elo ratings**: everyone starts at 1000; K-factor 32. Draws are possible.
-- **Daily challenge**: five games a day, the same for everyone: a sprint, a medium cross-math, a 5×5 KenKen, a 6×6 Sudoku and an easy Math Maze. Only your first attempt at each counts. The server replays every sprint answer against the day's seed and checks every puzzle answer before ranking you. Days roll over at midnight IST (configurable).
+- **Daily challenge**: six games a day, the same for everyone: a sprint, a medium cross-math, a 5×5 KenKen, a 6×6 Sudoku, an easy Math Maze and a Hectoc. Only your first attempt at each counts. The server replays every sprint answer against the day's seed and checks every puzzle answer before ranking you. Days roll over at midnight IST (configurable).
 - **Daily streaks**: days in a row with at least one daily result, shown on the daily page and your profile, with your best run. Today's streak holds until midnight even if you haven't played yet.
-- **Leaderboards**: duel rating, today's sprint (points), and today's fastest solve for each of the four puzzles.
+- **Leaderboards**: duel rating, today's sprint (points), today's fastest solve for each daily puzzle, and all-time bests for the two arcade games.
 - **Live scoreboard**: both scores drawn as tally marks while you play.
 - **Sound and phones**: short synthesized blips for right and wrong answers (toggle in the top bar, remembered per browser), and a collapsible menu on narrow screens.
 
@@ -26,7 +26,12 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - **KenKen**: 5×5 or 6×6. Each number once per row and column, and each outlined cage must make its target with its operation. Every puzzle is checked to have exactly one solution.
 - **Sudoku**: Mini 6×6 (2×3 boxes) and Classic 9×9, also with exactly one solution, and pencil notes.
 - **Math Maze**: walk a 5×5 or 7×7 grid of alternating numbers and operators from top-left to bottom-right, without reusing a square, and land on the target. The path is worked out left to right, like a calculator.
+- **Hectoc**: make 100 from six digits kept in order, with + − × ÷ ^, brackets, and neighbouring digits joined into bigger numbers. Every deal is checked to be solvable.
+- **Make 24**: five hands of four numbers (1–9 or 1–13); make 24 from each using all four once with + − × ÷ and brackets. Every hand is solvable.
+- Hectoc and Make 24 answers are typed as expressions (or tapped on a pad), shown live with their value, and evaluated in exact fractions by a small parser, never `eval`.
 - All puzzles have a timer and mistake count, play by tap or keyboard, and accept any valid answer, not just the generated one.
+- **Flash Anzan** (arcade): numbers flash one at a time and you type their total. Ten levels, from three 1-digit numbers a second apart to ten 3-digit numbers at 0.6 s; one wrong total ends the run.
+- **Number Memory** (arcade): a number shows for a moment and you type it back; each round adds a digit.
 - **Accounts and stats**: username/password sign-in, best sprint scores per operation and length, fastest puzzle times, accuracy and recent games.
 - **Server-verified puzzle solves**: puzzles come from seeded generators, so the server rebuilds each puzzle from its seed and checks the submitted grid or path before saving a time.
 
@@ -69,6 +74,8 @@ npm start         # run the built app and the server
 | `WEB_ORIGIN` | server | `http://localhost:3000` (CORS) |
 | `DB_PATH` | server | `server/data/matik.db` |
 | `DAILY_UTC_OFFSET_MIN` | server | `330` (daily challenge rolls over at midnight IST) |
+| `AUTH_RATE_LIMIT` | server | `30` (sign-in and sign-up attempts per address every 15 minutes) |
+| `TRUST_PROXY` | server | `1` in production (read client addresses from the host's proxy for rate limiting) |
 | `BOT_AFTER_SECONDS` | server | `10` (seconds in the queue before a computer opponent steps in; `0` turns bots off) |
 | `SERVE_WEB` | server | unset (set to `1` by `npm run start:prod` so one server serves the site too) |
 | `NEXT_PUBLIC_API_URL` | web | `http://localhost:4000` (empty in production builds, meaning same origin) |
@@ -83,7 +90,7 @@ npm run build:prod   # builds the site to talk to its own origin
 JWT_SECRET=some-long-random-string npm run start:prod
 ```
 
-`start:prod` refuses to start without `JWT_SECRET`. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
+`start:prod` refuses to start without `JWT_SECRET`. Sign-in and sign-up are rate limited per address, and every response carries basic security headers. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
 
 ### Render (recommended)
 
@@ -114,7 +121,11 @@ shared/src/
   kenken.ts       KenKen generator (unique solutions), solver, checker
   sudoku.ts       6×6 and 9×9 Sudoku generator (unique solutions), solver, checker
   maze.ts         Math Maze generator, path evaluator, checker
-  puzzles.ts      registry of the four puzzle games: rules, difficulties, verify
+  expr.ts         safe expression parser and exact-fraction arithmetic
+  hectoc.ts       Hectoc generator, solver and checker
+  make24.ts       Make 24 generator, solver and checker
+  arcade.ts       Flash Anzan levels and Number Memory rules
+  puzzles.ts      registry of the six puzzle games: rules, difficulties, verify
   duel.ts         duel/daily question sequence, Elo, daily seeds, socket event types
   types.ts        API request/response types
 server/src/
@@ -126,7 +137,7 @@ server/src/
   db.ts           SQLite schema
   socket.ts       authenticated Socket.io wired to the duel manager
 web/src/
-  app/            pages: home, duel, daily, practice, puzzles, leaderboard, auth, profile
+  app/            pages: home, duel, daily, practice, puzzles, arcade, leaderboard, auth, profile
   components/     top bar, choice chips, puzzle boards (cross-math, KenKen/Sudoku, maze), tally marks
   lib/            API client, auth context, socket client
 ```
@@ -145,7 +156,8 @@ web/src/
 | GET | `/api/daily` | optional | Today's sprint seed and puzzle, plus your results if signed in |
 | POST | `/api/daily/sprint` | yes | Submit today's sprint answers for replay and ranking |
 | POST | `/api/daily/puzzle` | yes | Submit a solution to one of today's puzzles (`kind`, then `grid` or `path`) |
-| GET | `/api/leaderboard?kind=` | | Top 50: `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze` |
+| POST | `/api/arcade` | yes | Save an arcade run (`game`: flash or memory, `score`); returns your best and rank |
+| GET | `/api/leaderboard?kind=` | | Top 50: `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze`, `daily-hectoc`, `arcade-flash`, `arcade-memory` |
 
 ### Socket events
 
@@ -166,4 +178,5 @@ Sockets authenticate with the same JWT as the REST API (`auth: { token }`).
 ## Limits
 
 - The daily sprint's timing is measured in the browser, so the server checks the answers but trusts the one-minute limit (it does reject impossibly many correct answers).
+- Arcade scores are reported by the browser; the server only rejects scores above each game's maximum.
 - Matchmaking and open challenges live in server memory, so restarting the server clears the queue (finished duels and ratings are saved).

@@ -8,3 +8,7 @@ export * from "./kenken";
 export * from "./sudoku";
 export * from "./maze";
 export * from "./puzzles";
+export * from "./expr";
+export * from "./hectoc";
+export * from "./make24";
+export * from "./arcade";

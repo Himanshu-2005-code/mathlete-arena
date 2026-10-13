@@ -13,6 +13,12 @@ export const DAILY_UTC_OFFSET_MIN = Number(process.env.DAILY_UTC_OFFSET_MIN ?? 3
 /** Seconds in the queue before a computer opponent steps in. 0 turns bots off. */
 export const BOT_AFTER_SECONDS = Number(process.env.BOT_AFTER_SECONDS ?? 10);
 
+/** Sign-in and sign-up attempts allowed per address every 15 minutes. */
+export const AUTH_RATE_LIMIT = Number(process.env.AUTH_RATE_LIMIT ?? 30);
+
+/** Trust the hosting platform's proxy for client addresses (on by default in production). */
+export const TRUST_PROXY = (process.env.TRUST_PROXY ?? (process.env.NODE_ENV === "production" ? "1" : "0")) === "1";
+
 /** In production the API server also serves the web app, on one port. */
 export const SERVE_WEB = process.env.SERVE_WEB === "1";
 

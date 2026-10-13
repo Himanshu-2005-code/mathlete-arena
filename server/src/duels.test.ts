@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   type ClientToServerEvents,
   type ServerToClientEvents,
+  generateHectoc,
   generateKenKen,
+  generateMake24,
   generateMaze,
   generateSudoku,
   sequenceQuestion,
@@ -332,7 +334,7 @@ describe("new puzzle games", () => {
       .body.token as string;
     const auth = { Authorization: `Bearer ${token}` };
     const daily = (await request(app).get("/api/daily").set(auth)).body;
-    expect(Object.keys(daily.extra).sort()).toEqual(["kenken", "maze", "sudoku"]);
+    expect(Object.keys(daily.extra).sort()).toEqual(["hectoc", "kenken", "maze", "sudoku"]);
     expect(daily.extra.kenken.puzzle.puzzle).not.toHaveProperty("solution");
     expect(daily.extra.maze.mine).toBeNull();
 
@@ -370,5 +372,71 @@ describe("new puzzle games", () => {
     expect((db.prepare("SELECT COUNT(*) AS n FROM daily_results").get() as { n: number }).n).toBe(2);
     // The rating column and bot flag were added on top of the old users table too.
     expect(db.prepare("SELECT is_bot, rating FROM users WHERE id = 1").get()).toEqual({ is_bot: 0, rating: 1000 });
+  });
+});
+
+describe("number puzzles and arcade", () => {
+  async function user(app: ReturnType<typeof createApp>, name: string) {
+    const t = (await request(app).post("/api/auth/register").send({ username: name, password: "secret123" })).body.token;
+    return { Authorization: `Bearer ${t}` };
+  }
+
+  it("saves Hectoc and Make 24 solves only when the expressions are right", async () => {
+    const { app } = await setup();
+    const auth = await user(app, "mathy");
+    const h = generateHectoc(21);
+    const m = generateMake24(21, "hard");
+    const ok = (body: object) => request(app).post("/api/results/puzzle").set(auth).send(body);
+    expect((await ok({ kind: "hectoc", seed: 21, difficulty: "standard", expressions: [h.solution], timeMs: 50_000, mistakes: 0 })).status).toBe(201);
+    expect((await ok({ kind: "make24", seed: 21, difficulty: "hard", expressions: m.solutions, timeMs: 90_000, mistakes: 2 })).status).toBe(201);
+    expect((await ok({ kind: "hectoc", seed: 21, difficulty: "standard", expressions: ["10×10"], timeMs: 5_000, mistakes: 0 })).status).toBe(400);
+    expect((await ok({ kind: "make24", seed: 21, difficulty: "hard", expressions: m.solutions.slice(0, 4), timeMs: 5_000, mistakes: 0 })).status).toBe(400);
+  });
+
+  it("puts Hectoc in the daily challenge", async () => {
+    const { app } = await setup();
+    const auth = await user(app, "hectic");
+    const daily = (await request(app).get("/api/daily").set(auth)).body;
+    expect(daily.extra.hectoc.puzzle.puzzle.digits).toHaveLength(6);
+    expect(daily.extra.hectoc.puzzle.puzzle).not.toHaveProperty("solution");
+    const { dailyPuzzle, today } = await import("./compete");
+    const { seed } = dailyPuzzle(today(), "hectoc");
+    const res = await request(app)
+      .post("/api/daily/puzzle")
+      .set(auth)
+      .send({ kind: "hectoc", expressions: [generateHectoc(seed).solution], timeMs: 33_000 });
+    expect(res.status).toBe(201);
+    expect((await request(app).get("/api/leaderboard?kind=daily-hectoc")).body.rows[0]).toMatchObject({ username: "hectic" });
+  });
+
+  it("records arcade runs, ranks bests and refuses impossible scores", async () => {
+    const { app } = await setup();
+    const a = await user(app, "flashy");
+    const b = await user(app, "memo1");
+    const post = (auth: Record<string, string>, body: object) => request(app).post("/api/arcade").set(auth).send(body);
+    expect((await post(a, { game: "flash", score: 6 })).body).toMatchObject({ best: 6, rank: 1, of: 1, newBest: true });
+    expect((await post(a, { game: "flash", score: 4 })).body).toMatchObject({ best: 6, newBest: false });
+    expect((await post(b, { game: "flash", score: 8 })).body).toMatchObject({ best: 8, rank: 1, of: 2 });
+    expect((await post(b, { game: "flash", score: 11 })).status).toBe(400);
+    expect((await post(b, { game: "memory", score: 9 })).status).toBe(201);
+
+    const board = (await request(app).get("/api/leaderboard?kind=arcade-flash")).body;
+    expect(board.rows).toEqual([
+      { rank: 1, username: "memo1", value: 8, detail: 1 },
+      { rank: 2, username: "flashy", value: 6, detail: 2 },
+    ]);
+    expect((await request(app).get("/api/stats").set(b)).body.arcade).toEqual({ flash: 8, memory: 9 });
+  });
+
+  it("limits sign-in attempts and sets basic security headers", async () => {
+    const { app } = await setup();
+    let last = 0;
+    for (let i = 0; i < 31; i++) {
+      last = (await request(app).post("/api/auth/login").send({ username: "nobody", password: "wrong-pass" })).status;
+    }
+    expect(last).toBe(429);
+    const health = await request(app).get("/api/health");
+    expect(health.headers["x-content-type-options"]).toBe("nosniff");
+    expect(health.headers["x-powered-by"]).toBeUndefined();
   });
 });

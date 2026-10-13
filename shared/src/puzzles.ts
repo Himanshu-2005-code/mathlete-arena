@@ -2,10 +2,12 @@ import { type Difficulty, type PublicPuzzle, checkCrossMath, generateCrossMath, 
 import { type KenKenDifficulty, type PublicKenKen, checkKenKen, generateKenKen, kenkenToPublic } from "./kenken";
 import { type MazeDifficulty, type PublicMaze, checkMaze, generateMaze, mazeToPublic } from "./maze";
 import { type PublicSudoku, type SudokuDifficulty, checkSudoku, generateSudoku, sudokuToPublic } from "./sudoku";
+import { type PublicHectoc, checkHectoc, generateHectoc, hectocToPublic } from "./hectoc";
+import { type Make24Difficulty, type PublicMake24, checkMake24, generateMake24, make24ToPublic } from "./make24";
 
 /** Every puzzle game, so the server and the site can treat them alike. */
 
-export type PuzzleKind = "crossmath" | "kenken" | "sudoku" | "maze";
+export type PuzzleKind = "crossmath" | "kenken" | "sudoku" | "maze" | "hectoc" | "make24";
 
 export interface PuzzleKindInfo {
   id: PuzzleKind;
@@ -61,6 +63,24 @@ export const PUZZLE_KINDS: PuzzleKindInfo[] = [
     ],
     daily: "easy",
   },
+  {
+    id: "hectoc",
+    label: "Hectoc",
+    rules:
+      "Make 100 from the six digits, keeping them in order. Use + − × ÷ ^ and brackets between them, and join neighbours into bigger numbers if you like (1 and 2 make 12).",
+    difficulties: [{ id: "standard", label: "Six digits" }],
+    daily: "standard",
+  },
+  {
+    id: "make24",
+    label: "Make 24",
+    rules: "Five hands of four numbers. Use all four numbers in each hand once, in any order, with + − × ÷ and brackets, to make 24.",
+    difficulties: [
+      { id: "easy", label: "Numbers 1 to 9" },
+      { id: "hard", label: "Numbers 1 to 13" },
+    ],
+    daily: "easy",
+  },
 ];
 
 export const puzzleInfo = (kind: PuzzleKind) => PUZZLE_KINDS.find((k) => k.id === kind)!;
@@ -73,12 +93,15 @@ export type AnyPublicPuzzle =
   | { kind: "crossmath"; puzzle: PublicPuzzle }
   | { kind: "kenken"; puzzle: PublicKenKen }
   | { kind: "sudoku"; puzzle: PublicSudoku }
-  | { kind: "maze"; puzzle: PublicMaze };
+  | { kind: "maze"; puzzle: PublicMaze }
+  | { kind: "hectoc"; puzzle: PublicHectoc }
+  | { kind: "make24"; puzzle: PublicMake24 };
 
-/** What a player submits: a filled grid, or a path for the maze. */
+/** What a player submits: a filled grid, a path for the maze, or expressions for Hectoc and Make 24. */
 export interface PuzzleAnswer {
   grid?: (number | null)[][];
   path?: [number, number][];
+  expressions?: string[];
 }
 
 export function generatePublicPuzzle(kind: PuzzleKind, seed: number, difficulty: string): AnyPublicPuzzle {
@@ -91,6 +114,10 @@ export function generatePublicPuzzle(kind: PuzzleKind, seed: number, difficulty:
       return { kind, puzzle: sudokuToPublic(generateSudoku(seed, difficulty as SudokuDifficulty)) };
     case "maze":
       return { kind, puzzle: mazeToPublic(generateMaze(seed, difficulty as MazeDifficulty)) };
+    case "hectoc":
+      return { kind, puzzle: hectocToPublic(generateHectoc(seed)) };
+    case "make24":
+      return { kind, puzzle: make24ToPublic(generateMake24(seed, difficulty as Make24Difficulty)) };
   }
 }
 
@@ -107,5 +134,9 @@ export function verifyPuzzle(kind: PuzzleKind, seed: number, difficulty: string,
       return !!answer.grid && checkSudoku(p.puzzle, answer.grid).solved;
     case "maze":
       return !!answer.path && checkMaze(p.puzzle, answer.path).solved;
+    case "hectoc":
+      return answer.expressions?.length === 1 && checkHectoc(p.puzzle, answer.expressions[0]).solved;
+    case "make24":
+      return !!answer.expressions && checkMake24(p.puzzle, answer.expressions);
   }
 }

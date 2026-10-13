@@ -60,26 +60,36 @@ export function openDb(file = DB_PATH) {
     CREATE TABLE IF NOT EXISTS daily_results (
       user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       day        TEXT NOT NULL,
-      kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle', 'kenken', 'sudoku', 'maze')),
+      kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle', 'kenken', 'sudoku', 'maze', 'hectoc')),
       score      INTEGER NOT NULL,
       correct    INTEGER NOT NULL,
       time_ms    INTEGER NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (user_id, day, kind)
     );
+
+    CREATE TABLE IF NOT EXISTS arcade_results (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      game       TEXT NOT NULL CHECK (game IN ('flash', 'memory')),
+      score      INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_arcade_game ON arcade_results(game, score DESC);
   `);
 
-  // Daily results first allowed only sprint and cross-math; widen the kinds.
+  // Daily results started with only sprint and cross-math; widen the kinds as games are added.
   const daily = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'daily_results'").get() as
     | { sql: string }
     | undefined;
-  if (daily && !daily.sql.includes("'kenken'")) {
+  if (daily && !daily.sql.includes("'hectoc'")) {
     db.transaction(() => {
       db.exec("ALTER TABLE daily_results RENAME TO daily_results_old");
       db.exec(`CREATE TABLE daily_results (
         user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         day        TEXT NOT NULL,
-        kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle', 'kenken', 'sudoku', 'maze')),
+        kind       TEXT NOT NULL CHECK (kind IN ('sprint', 'puzzle', 'kenken', 'sudoku', 'maze', 'hectoc')),
         score      INTEGER NOT NULL,
         correct    INTEGER NOT NULL,
         time_ms    INTEGER NOT NULL,

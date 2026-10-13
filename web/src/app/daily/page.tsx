@@ -20,7 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { playCorrect } from "@/lib/sound";
 
 /** The leaderboard tab for each daily game (cross-math was the first, so it's "puzzle"). */
-type Board = "sprint" | "puzzle" | "kenken" | "sudoku" | "maze";
+type Board = "sprint" | "puzzle" | "kenken" | "sudoku" | "maze" | "hectoc" | "make24";
 const boardOf = (kind: PuzzleKind): Board => (kind === "crossmath" ? "puzzle" : kind);
 
 function Placing({ result, unit }: { result: DailyResult; unit: Board }) {
@@ -270,16 +270,17 @@ export default function DailyPage() {
     month: "long",
   });
 
-  const puzzles: Record<PuzzleKind, AnyPublicPuzzle> = {
+  const puzzles = {
     crossmath: { kind: "crossmath", puzzle: info.puzzle },
     kenken: info.extra.kenken.puzzle,
     sudoku: info.extra.sudoku.puzzle,
     maze: info.extra.maze.puzzle,
-  };
+    hectoc: info.extra.hectoc.puzzle,
+  } as Record<PuzzleKind, AnyPublicPuzzle>;
 
   const slots: { id: Slot; title: string; about: string }[] = [
     { id: "sprint", title: "Sprint", about: "One minute of mixed questions that get harder as you go. Most points wins." },
-    ...(["crossmath", "kenken", "sudoku", "maze"] as PuzzleKind[]).map((k) => ({
+    ...(["crossmath", "kenken", "sudoku", "maze", "hectoc"] as PuzzleKind[]).map((k) => ({
       id: k,
       title: puzzleInfo(k).label,
       about: `${puzzleInfo(k).difficulties.find((d) => d.id === puzzles[k].puzzle.difficulty)?.label}. Fastest solve wins.`,
@@ -291,7 +292,7 @@ export default function DailyPage() {
     <section>
       <h1>Daily challenge</h1>
       <p className="lede">
-        {date}. Five games, the same for everyone today, and your first try at each is the one that counts. Play any one
+        {date}. Six games, the same for everyone today, and your first try at each is the one that counts. Play any one
         to keep your streak. A new set starts at midnight.
       </p>
       {streak && (

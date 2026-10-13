@@ -67,7 +67,11 @@ export default function ProfilePage() {
 
   const { practice, puzzles, duels, recent } = stats;
   const nothingYet =
-    practice.sessions === 0 && puzzles.solved === 0 && duels.played === 0 && stats.dailyStreak.best === 0;
+    practice.sessions === 0 &&
+    puzzles.solved === 0 &&
+    duels.played === 0 &&
+    stats.dailyStreak.best === 0 &&
+    stats.arcade.flash + stats.arcade.memory === 0;
 
   return (
     <section>
@@ -111,6 +115,18 @@ export default function ProfilePage() {
               <div className="figure">
                 <span className="num">{stats.dailyStreak.current}</span>
                 <span className="label">day streak, best {stats.dailyStreak.best}</span>
+              </div>
+            )}
+            {stats.arcade.flash > 0 && (
+              <div className="figure">
+                <span className="num">{stats.arcade.flash}</span>
+                <span className="label">Flash Anzan level</span>
+              </div>
+            )}
+            {stats.arcade.memory > 0 && (
+              <div className="figure">
+                <span className="num">{stats.arcade.memory}</span>
+                <span className="label">digits remembered</span>
               </div>
             )}
             {practice.sessions > 0 && (

@@ -99,8 +99,7 @@ export default function Home() {
           <div>
             <h3>Puzzles</h3>
             <p>
-              Cross-math, KenKen, Sudoku in 6×6 and 9×9, and Math Maze, where you walk a path of numbers and operators to
-              hit a target.
+              Cross-math, KenKen, Sudoku, Math Maze, Hectoc (make 100 from six digits in order) and Make 24.
             </p>
           </div>
           <Link href="/puzzles" className="btn ghost">
@@ -122,10 +121,19 @@ export default function Home() {
         <li className="entry">
           <div>
             <h3>Daily challenge</h3>
-            <p>A sprint and four puzzles, the same for everyone, with fresh leaderboards and your streak each day.</p>
+            <p>A sprint and five puzzles, the same for everyone, with fresh leaderboards and your streak each day.</p>
           </div>
           <Link href="/daily" className="btn ghost">
             Today's challenge
+          </Link>
+        </li>
+        <li className="entry">
+          <div>
+            <h3>Arcade</h3>
+            <p>Flash Anzan, adding numbers as they flash past, and Number Memory. See how far you get.</p>
+          </div>
+          <Link href="/arcade" className="btn ghost">
+            Arcade
           </Link>
         </li>
       </ul>

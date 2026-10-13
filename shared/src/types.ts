@@ -36,6 +36,7 @@ export interface PuzzleResultInput {
   difficulty: string;
   grid?: (number | null)[][];
   path?: [number, number][];
+  expressions?: string[];
   timeMs: number;
   mistakes: number;
 }
@@ -65,6 +66,8 @@ export interface Stats {
     fastestByDifficulty: { difficulty: string; bestMs: number }[];
   };
   dailyStreak: { current: number; best: number };
+  /** Best arcade scores; 0 when not played. */
+  arcade: { flash: number; memory: number };
   duels: {
     played: number;
     won: number;
@@ -102,12 +105,13 @@ export interface DailyPuzzleInput {
   kind?: PuzzleKind;
   grid?: (number | null)[][];
   path?: [number, number][];
+  expressions?: string[];
   timeMs: number;
 }
 
 /** The daily puzzles beyond cross-math. */
-export type DailyExtraKind = "kenken" | "sudoku" | "maze";
-export const DAILY_EXTRA_KINDS: DailyExtraKind[] = ["kenken", "sudoku", "maze"];
+export type DailyExtraKind = "kenken" | "sudoku" | "maze" | "hectoc";
+export const DAILY_EXTRA_KINDS: DailyExtraKind[] = ["kenken", "sudoku", "maze", "hectoc"];
 
 export interface DailyResult {
   score: number;
@@ -136,7 +140,10 @@ export type LeaderboardKind =
   | "daily-puzzle"
   | "daily-kenken"
   | "daily-sudoku"
-  | "daily-maze";
+  | "daily-maze"
+  | "daily-hectoc"
+  | "arcade-flash"
+  | "arcade-memory";
 
 export const LEADERBOARD_KINDS: LeaderboardKind[] = [
   "rating",
@@ -145,7 +152,18 @@ export const LEADERBOARD_KINDS: LeaderboardKind[] = [
   "daily-kenken",
   "daily-sudoku",
   "daily-maze",
+  "daily-hectoc",
+  "arcade-flash",
+  "arcade-memory",
 ];
+
+export interface ArcadeResult {
+  best: number;
+  /** Your place among everyone's bests. */
+  rank: number;
+  of: number;
+  newBest: boolean;
+}
 
 export interface LeaderboardRow {
   rank: number;

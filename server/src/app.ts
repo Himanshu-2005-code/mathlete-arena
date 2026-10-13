@@ -8,7 +8,9 @@ import {
   SPRINT_SECONDS,
   type SessionRow,
   type Stats,
+  type ArcadeResult,
   checkCrossMath,
+  isPlausibleArcadeScore,
   isDifficulty,
   verifyPuzzle,
   generateCrossMath,
@@ -26,7 +28,9 @@ import {
 import { WEB_ORIGIN } from "./config";
 import { isReservedName } from "./bots";
 import { dailyStreak, registerCompetitionRoutes } from "./compete";
-import { answerGrid, answerPath, puzzleKind } from "./schemas";
+import { answerExpressions, answerGrid, answerPath, arcadeGame, puzzleKind } from "./schemas";
+import rateLimit from "express-rate-limit";
+import { AUTH_RATE_LIMIT, TRUST_PROXY } from "./config";
 import type { Db } from "./db";
 
 const credentials = z.object({
@@ -59,6 +63,7 @@ const puzzleResult = z.object({
   difficulty: z.string().max(10),
   grid: answerGrid.optional(),
   path: answerPath.optional(),
+  expressions: answerExpressions.optional(),
   timeMs: z.number().int().min(0).max(24 * 3600_000),
   mistakes: z.number().int().min(0).max(1_000),
 });
@@ -69,7 +74,27 @@ function firstError(err: z.ZodError): string {
 
 export function createApp(db: Db) {
   const app = express();
+  // Behind Render/Railway/Fly the client's address arrives in X-Forwarded-For.
+  if (TRUST_PROXY) app.set("trust proxy", 1);
+  app.disable("x-powered-by");
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("X-Frame-Options", "DENY");
+    next();
+  });
   app.use(cors({ origin: WEB_ORIGIN }));
+  // Slow down password guessing and sign-up spam.
+  app.use(
+    "/api/auth",
+    rateLimit({
+      windowMs: 15 * 60_000,
+      limit: AUTH_RATE_LIMIT,
+      standardHeaders: "draft-7",
+      legacyHeaders: false,
+      message: { error: "Too many attempts. Try again in a few minutes." },
+    }),
+  );
   app.use(express.json({ limit: "32kb" }));
 
   const findByName = db.prepare<[string], UserRow>("SELECT * FROM users WHERE username = ?");
@@ -148,7 +173,7 @@ export function createApp(db: Db) {
     if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
     const r = parsed.data;
     if (!isDifficulty(r.kind, r.difficulty)) return void res.status(400).json({ error: "Unknown difficulty" });
-    if (!verifyPuzzle(r.kind, r.seed, r.difficulty, { grid: r.grid, path: r.path })) {
+    if (!verifyPuzzle(r.kind, r.seed, r.difficulty, { grid: r.grid, path: r.path, expressions: r.expressions })) {
       return void res.status(400).json({ error: "That doesn't solve the puzzle" });
     }
 
@@ -231,6 +256,7 @@ export function createApp(db: Db) {
       },
       puzzles: { solved: puzzleSolved.n, fastestByDifficulty: fastest },
       dailyStreak: dailyStreak(db, userId),
+      arcade: arcadeBests(userId),
       duels: {
         played: duelRows.length,
         won: count("win"),
@@ -242,6 +268,39 @@ export function createApp(db: Db) {
       recent,
     };
     res.json(stats);
+  });
+
+  function arcadeBests(userId: number) {
+    const rows = db
+      .prepare("SELECT game, MAX(score) AS best FROM arcade_results WHERE user_id = ? GROUP BY game")
+      .all(userId) as { game: "flash" | "memory"; best: number }[];
+    const out = { flash: 0, memory: 0 };
+    for (const r of rows) out[r.game] = r.best;
+    return out;
+  }
+
+  const arcadeBody = z.object({ game: arcadeGame, score: z.number().int().min(0) });
+
+  app.post("/api/arcade", requireAuth, (req, res) => {
+    const parsed = arcadeBody.safeParse(req.body);
+    if (!parsed.success) return void res.status(400).json({ error: "Invalid arcade result" });
+    const { game, score } = parsed.data;
+    if (!isPlausibleArcadeScore(game, score)) return void res.status(400).json({ error: "That score isn't possible" });
+    const userId = (req as AuthedRequest).userId;
+    const before = arcadeBests(userId)[game];
+    db.prepare("INSERT INTO arcade_results (user_id, game, score) VALUES (?, ?, ?)").run(userId, game, score);
+    const best = Math.max(before, score);
+    const { ahead } = db
+      .prepare(
+        `SELECT COUNT(*) AS ahead FROM (SELECT user_id, MAX(score) AS b FROM arcade_results WHERE game = ? GROUP BY user_id)
+         WHERE b > ?`,
+      )
+      .get(game, best) as { ahead: number };
+    const { of } = db
+      .prepare("SELECT COUNT(DISTINCT user_id) AS of FROM arcade_results WHERE game = ?")
+      .get(game) as { of: number };
+    const result: ArcadeResult = { best, rank: ahead + 1, of, newBest: score > before };
+    res.status(201).json(result);
   });
 
   registerCompetitionRoutes(app, db);

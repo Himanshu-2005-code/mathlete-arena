@@ -14,6 +14,9 @@ const KINDS: { value: LeaderboardKind; label: string }[] = [
   { value: "daily-kenken", label: "KenKen" },
   { value: "daily-sudoku", label: "Sudoku" },
   { value: "daily-maze", label: "Math Maze" },
+  { value: "daily-hectoc", label: "Hectoc" },
+  { value: "arcade-flash", label: "Flash Anzan" },
+  { value: "arcade-memory", label: "Number Memory" },
 ];
 
 const solveBoard = (game: string) => ({ value: "Time", detail: null, empty: `Nobody has solved today's ${game} yet.` });
@@ -25,6 +28,9 @@ const COLUMNS: Record<LeaderboardKind, { value: string; detail: string | null; e
   "daily-kenken": solveBoard("KenKen"),
   "daily-sudoku": solveBoard("Sudoku"),
   "daily-maze": solveBoard("Math Maze"),
+  "daily-hectoc": solveBoard("Hectoc"),
+  "arcade-flash": { value: "Best level", detail: "Runs", empty: "Nobody has played Flash Anzan yet." },
+  "arcade-memory": { value: "Best digits", detail: "Runs", empty: "Nobody has played Number Memory yet." },
 };
 
 export default function LeaderboardPage() {
@@ -56,7 +62,9 @@ export default function LeaderboardPage() {
       <p className="lede">
         {kind === "rating"
           ? "Everyone who has played a duel, by rating."
-          : `Today's best first attempts${board?.day ? ` (${board.day})` : ""}. Days reset at midnight.`}
+          : kind.startsWith("arcade-")
+            ? "Everyone's best run, all time."
+            : `Today's best first attempts${board?.day ? ` (${board.day})` : ""}. Days reset at midnight.`}
       </p>
 
       <Choices legend="Board" name="board" value={kind} onChange={setKind} options={KINDS} />
@@ -83,7 +91,9 @@ export default function LeaderboardPage() {
                     {r.username}
                     {r.bot && <span className="tag">computer</span>}
                   </td>
-                  <td className="r num">{kind === "rating" || kind === "daily-sprint" ? r.value : formatTime(r.value)}</td>
+                  <td className="r num">
+                    {kind === "rating" || kind === "daily-sprint" || kind.startsWith("arcade-") ? r.value : formatTime(r.value)}
+                  </td>
                   {cols.detail && <td className="r num">{r.detail}</td>}
                 </tr>
               ))}
