@@ -12,3 +12,7 @@ export * from "./expr";
 export * from "./hectoc";
 export * from "./make24";
 export * from "./arcade";
+export * from "./gridsolver";
+export * from "./killer";
+export * from "./futoshiki";
+export * from "./blitz";

@@ -71,7 +71,7 @@ export function openDb(file = DB_PATH) {
     CREATE TABLE IF NOT EXISTS arcade_results (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      game       TEXT NOT NULL CHECK (game IN ('flash', 'memory')),
+      game       TEXT NOT NULL CHECK (game IN ('flash', 'memory', 'truefalse', 'compare', 'sign')),
       score      INTEGER NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -98,6 +98,26 @@ export function openDb(file = DB_PATH) {
       )`);
       db.exec("INSERT INTO daily_results SELECT * FROM daily_results_old");
       db.exec("DROP TABLE daily_results_old");
+    })();
+  }
+
+  // Arcade results started with flash and memory only; widen the games.
+  const arcade = db.prepare("SELECT sql FROM sqlite_master WHERE name = 'arcade_results'").get() as
+    | { sql: string }
+    | undefined;
+  if (arcade && !arcade.sql.includes("'sign'")) {
+    db.transaction(() => {
+      db.exec("ALTER TABLE arcade_results RENAME TO arcade_results_old");
+      db.exec(`CREATE TABLE arcade_results (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        game       TEXT NOT NULL CHECK (game IN ('flash', 'memory', 'truefalse', 'compare', 'sign')),
+        score      INTEGER NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )`);
+      db.exec("INSERT INTO arcade_results SELECT * FROM arcade_results_old");
+      db.exec("DROP TABLE arcade_results_old");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_arcade_game ON arcade_results(game, score DESC)");
     })();
   }
 

@@ -8,6 +8,8 @@ import {
   SPRINT_SECONDS,
   type SessionRow,
   type Stats,
+  ARCADE_GAMES,
+  type ArcadeGame,
   type ArcadeResult,
   checkCrossMath,
   isPlausibleArcadeScore,
@@ -273,8 +275,8 @@ export function createApp(db: Db) {
   function arcadeBests(userId: number) {
     const rows = db
       .prepare("SELECT game, MAX(score) AS best FROM arcade_results WHERE user_id = ? GROUP BY game")
-      .all(userId) as { game: "flash" | "memory"; best: number }[];
-    const out = { flash: 0, memory: 0 };
+      .all(userId) as { game: ArcadeGame; best: number }[];
+    const out = Object.fromEntries(ARCADE_GAMES.map((g) => [g.id, 0])) as Record<ArcadeGame, number>;
     for (const r of rows) out[r.game] = r.best;
     return out;
   }

@@ -6,6 +6,12 @@ import {
   ARCADE_GAMES,
   type ArcadeGame,
   type ArcadeResult,
+  BLITZ_PENALTY_SECONDS,
+  BLITZ_SECONDS,
+  type BlitzGame,
+  type BlitzQuestion,
+  blitzQuestion,
+  isBlitz,
   FLASH_LEVELS,
   MEMORY_START,
   arcadeInfo,
@@ -369,12 +375,150 @@ function NumberMemory() {
   );
 }
 
+const KEYS: Record<BlitzGame, string[][]> = {
+  truefalse: [["ArrowLeft", "t", "T"], ["ArrowRight", "f", "F"]],
+  compare: [["ArrowLeft"], ["ArrowRight"]],
+  sign: [["1"], ["2"], ["3"], ["4"]],
+};
+const KEY_HINTS: Record<BlitzGame, string[]> = {
+  truefalse: ["←", "→"],
+  compare: ["←", "→"],
+  sign: ["1", "2", "3", "4"],
+};
+
+/** Sixty seconds of quick choices; a wrong one costs time. */
+function Blitz({ game }: { game: BlitzGame }) {
+  const saver = useRunSaver(game);
+  const [phase, setPhase] = useState<"ready" | "playing" | "over">("ready");
+  const [q, setQ] = useState<BlitzQuestion | null>(null);
+  const [score, setScore] = useState(0);
+  const [misses, setMisses] = useState(0);
+  const [left, setLeft] = useState(BLITZ_SECONDS * 1000);
+  const [shake, setShake] = useState(false);
+  const rng = useRef(createRng(randomSeed()));
+  const endsAt = useRef(0);
+  const scoreRef = useRef(0);
+
+  const start = () => {
+    saver.reset();
+    rng.current = createRng(randomSeed());
+    scoreRef.current = 0;
+    setScore(0);
+    setMisses(0);
+    endsAt.current = performance.now() + BLITZ_SECONDS * 1000;
+    setLeft(BLITZ_SECONDS * 1000);
+    setQ(blitzQuestion(game, rng.current, 0));
+    setPhase("playing");
+  };
+
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const id = setInterval(() => {
+      const l = endsAt.current - performance.now();
+      setLeft(Math.max(0, l));
+      if (l <= 0) {
+        setPhase("over");
+        saver.save(scoreRef.current);
+      }
+    }, 100);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  const choose = useCallback(
+    (i: number) => {
+      if (phase !== "playing" || !q) return;
+      if (i === q.answer) {
+        playCorrect();
+        scoreRef.current += 1;
+        setScore(scoreRef.current);
+      } else {
+        playWrong();
+        setMisses((m) => m + 1);
+        endsAt.current -= BLITZ_PENALTY_SECONDS * 1000;
+        setShake(true);
+        setTimeout(() => setShake(false), 300);
+      }
+      // Every five right answers, the numbers get bigger.
+      setQ(blitzQuestion(game, rng.current, Math.floor(scoreRef.current / 5)));
+    },
+    [phase, q, game],
+  );
+
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const onKey = (e: KeyboardEvent) => {
+      const i = KEYS[game].findIndex((keys) => keys.includes(e.key));
+      if (i >= 0) {
+        e.preventDefault();
+        choose(i);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phase, game, choose]);
+
+  if (phase === "ready") {
+    return (
+      <div className="actions">
+        <button type="button" className="btn" onClick={start}>
+          Start 60 seconds
+        </button>
+      </div>
+    );
+  }
+
+  if (phase === "over") {
+    return (
+      <>
+        <p className="lede">
+          Time. {score} right{misses > 0 ? `, ${misses} wrong` : ""}.
+        </p>
+        <RunSummary score={score} unit="right answers" saver={saver} onAgain={start} />
+      </>
+    );
+  }
+
+  const secs = Math.ceil(left / 1000);
+  return (
+    <div>
+      <div className="sprint-bar">
+        <span>
+          <span className={`num${secs <= 5 ? " low" : ""}`}>{secs}</span>seconds left
+        </span>
+        <span>
+          <span className="num">{score}</span>right
+        </span>
+        {misses > 0 && <span className="penalty">−{misses * BLITZ_PENALTY_SECONDS}s</span>}
+      </div>
+      <div className="timer-track" aria-hidden>
+        <div className="timer-fill" style={{ transform: `scaleX(${left / (BLITZ_SECONDS * 1000)})` }} />
+      </div>
+      {q && (
+        <>
+          <p className={`blitz-prompt${game === "compare" ? " small" : ""}`} aria-live="polite">
+            {q.prompt}
+          </p>
+          <div className={`blitz-choices${shake ? " wrong" : ""}`}>
+            {q.choices.map((choice, i) => (
+              <button key={`${q.prompt}-${i}`} type="button" className="blitz-choice" onClick={() => choose(i)}>
+                {choice}
+                <kbd>{KEY_HINTS[game][i]}</kbd>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function ArcadePage() {
   const [game, setGame] = useState<ArcadeGame>("flash");
 
   useEffect(() => {
     const g = new URLSearchParams(window.location.search).get("game");
-    if (g === "flash" || g === "memory") setGame(g);
+    if (g && ARCADE_GAMES.some((x) => x.id === g)) setGame(g as ArcadeGame);
   }, []);
 
   return (
@@ -388,7 +532,13 @@ export default function ArcadePage() {
         options={ARCADE_GAMES.map((g) => ({ value: g.id, label: g.label }))}
       />
       <p className="lede">{arcadeInfo(game).rules}</p>
-      {game === "flash" ? <FlashAnzan key="flash" /> : <NumberMemory key="memory" />}
+      {game === "flash" ? (
+        <FlashAnzan key="flash" />
+      ) : game === "memory" ? (
+        <NumberMemory key="memory" />
+      ) : isBlitz(game) ? (
+        <Blitz key={game} game={game} />
+      ) : null}
     </section>
   );
 }

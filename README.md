@@ -1,6 +1,6 @@
 # matik-game
 
-A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, six puzzle games (cross-math, KenKen, Sudoku, Math Maze, Hectoc, Make 24) and two arcade games (Flash Anzan, Number Memory).
+A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, eight puzzle games (cross-math, KenKen, Sudoku, Killer Sudoku, Futoshiki, Math Maze, Hectoc, Make 24) and five arcade games (Flash Anzan, Number Memory, and three 60-second blitzes).
 
 ## Features
 
@@ -14,7 +14,7 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - **Elo ratings**: everyone starts at 1000; K-factor 32. Draws are possible.
 - **Daily challenge**: six games a day, the same for everyone: a sprint, a medium cross-math, a 5×5 KenKen, a 6×6 Sudoku, an easy Math Maze and a Hectoc. Only your first attempt at each counts. The server replays every sprint answer against the day's seed and checks every puzzle answer before ranking you. Days roll over at midnight IST (configurable).
 - **Daily streaks**: days in a row with at least one daily result, shown on the daily page and your profile, with your best run. Today's streak holds until midnight even if you haven't played yet.
-- **Leaderboards**: duel rating, today's sprint (points), today's fastest solve for each daily puzzle, and all-time bests for the two arcade games.
+- **Leaderboards**: duel rating, today's sprint (points), today's fastest solve for each daily puzzle, and all-time bests for every arcade game.
 - **Live scoreboard**: both scores drawn as tally marks while you play.
 - **Sound and phones**: short synthesized blips for right and wrong answers (toggle in the top bar, remembered per browser), and a collapsible menu on narrow screens.
 
@@ -25,6 +25,8 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - **Cross-math**: 3×3 grids where every row and column is an equation (× and ÷ before + and −). Easy, medium and hard.
 - **KenKen**: 5×5 or 6×6. Each number once per row and column, and each outlined cage must make its target with its operation. Every puzzle is checked to have exactly one solution.
 - **Sudoku**: Mini 6×6 (2×3 boxes) and Classic 9×9, also with exactly one solution, and pencil notes.
+- **Killer Sudoku**: 6×6 Sudoku with dashed cages (each inside one box) whose digits are distinct and add up to the cage's total. Usually no more than three starting numbers, and exactly one solution.
+- **Futoshiki**: 5×5 or 6×6; each number once per row and column, and every < > ∧ ∨ sign between neighbours must hold. Exactly one solution.
 - **Math Maze**: walk a 5×5 or 7×7 grid of alternating numbers and operators from top-left to bottom-right, without reusing a square, and land on the target. The path is worked out left to right, like a calculator.
 - **Hectoc**: make 100 from six digits kept in order, with + − × ÷ ^, brackets, and neighbouring digits joined into bigger numbers. Every deal is checked to be solvable.
 - **Make 24**: five hands of four numbers (1–9 or 1–13); make 24 from each using all four once with + − × ÷ and brackets. Every hand is solvable.
@@ -32,6 +34,7 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - All puzzles have a timer and mistake count, play by tap or keyboard, and accept any valid answer, not just the generated one.
 - **Flash Anzan** (arcade): numbers flash one at a time and you type their total. Ten levels, from three 1-digit numbers a second apart to ten 3-digit numbers at 0.6 s; one wrong total ends the run.
 - **Number Memory** (arcade): a number shows for a moment and you type it back; each round adds a digit.
+- **Blitzes** (arcade): 60 seconds of quick choices, where a wrong one costs 3 seconds. **True or False** (is the sum right?), **Bigger or Smaller** (pick the larger of two sums) and **Missing Sign** (which of + − × ÷ fits; only ever one does). Questions get bigger every five right answers; play by tap or keyboard.
 - **Accounts and stats**: username/password sign-in, best sprint scores per operation and length, fastest puzzle times, accuracy and recent games.
 - **Server-verified puzzle solves**: puzzles come from seeded generators, so the server rebuilds each puzzle from its seed and checks the submitted grid or path before saving a time.
 
@@ -124,8 +127,12 @@ shared/src/
   expr.ts         safe expression parser and exact-fraction arithmetic
   hectoc.ts       Hectoc generator, solver and checker
   make24.ts       Make 24 generator, solver and checker
-  arcade.ts       Flash Anzan levels and Number Memory rules
-  puzzles.ts      registry of the six puzzle games: rules, difficulties, verify
+  gridsolver.ts   constraint solver for number grids (rows, columns, boxes, sum cages, < signs) and uniqueness
+  killer.ts       Killer Sudoku generator and checker
+  futoshiki.ts    Futoshiki generator and checker
+  blitz.ts        True or False, Bigger or Smaller and Missing Sign question generators
+  arcade.ts       arcade games: Flash Anzan levels, Number Memory, blitz list and score limits
+  puzzles.ts      registry of the eight puzzle games: rules, difficulties, verify
   duel.ts         duel/daily question sequence, Elo, daily seeds, socket event types
   types.ts        API request/response types
 server/src/
@@ -156,8 +163,8 @@ web/src/
 | GET | `/api/daily` | optional | Today's sprint seed and puzzle, plus your results if signed in |
 | POST | `/api/daily/sprint` | yes | Submit today's sprint answers for replay and ranking |
 | POST | `/api/daily/puzzle` | yes | Submit a solution to one of today's puzzles (`kind`, then `grid` or `path`) |
-| POST | `/api/arcade` | yes | Save an arcade run (`game`: flash or memory, `score`); returns your best and rank |
-| GET | `/api/leaderboard?kind=` | | Top 50: `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze`, `daily-hectoc`, `arcade-flash`, `arcade-memory` |
+| POST | `/api/arcade` | yes | Save an arcade run (`game`: flash, memory, truefalse, compare or sign; `score`); returns your best and rank |
+| GET | `/api/leaderboard?kind=` | | Top 50: `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze`, `daily-hectoc`, `arcade-flash`, `arcade-memory`, `arcade-truefalse`, `arcade-compare`, `arcade-sign` |
 
 ### Socket events
 

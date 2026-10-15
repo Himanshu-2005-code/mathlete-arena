@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@matik/shared";
+import { ARCADE_GAMES, PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@matik/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -71,7 +71,7 @@ export default function ProfilePage() {
     puzzles.solved === 0 &&
     duels.played === 0 &&
     stats.dailyStreak.best === 0 &&
-    stats.arcade.flash + stats.arcade.memory === 0;
+    Object.values(stats.arcade).every((v) => v === 0);
 
   return (
     <section>
@@ -116,6 +116,15 @@ export default function ProfilePage() {
                 <span className="num">{stats.dailyStreak.current}</span>
                 <span className="label">day streak, best {stats.dailyStreak.best}</span>
               </div>
+            )}
+            {(["truefalse", "compare", "sign"] as const).map(
+              (g) =>
+                stats.arcade[g] > 0 && (
+                  <div className="figure" key={g}>
+                    <span className="num">{stats.arcade[g]}</span>
+                    <span className="label">best {ARCADE_GAMES.find((x) => x.id === g)!.label}</span>
+                  </div>
+                ),
             )}
             {stats.arcade.flash > 0 && (
               <div className="figure">

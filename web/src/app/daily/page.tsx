@@ -20,7 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { playCorrect } from "@/lib/sound";
 
 /** The leaderboard tab for each daily game (cross-math was the first, so it's "puzzle"). */
-type Board = "sprint" | "puzzle" | "kenken" | "sudoku" | "maze" | "hectoc" | "make24";
+type Board = "sprint" | "puzzle" | Exclude<PuzzleKind, "crossmath">;
 const boardOf = (kind: PuzzleKind): Board => (kind === "crossmath" ? "puzzle" : kind);
 
 function Placing({ result, unit }: { result: DailyResult; unit: Board }) {

@@ -6,7 +6,7 @@ import { type Rng, randInt } from "./rng";
  *  - Number Memory: a number shows briefly; type it back. One digit longer each round.
  */
 
-export type ArcadeGame = "flash" | "memory";
+export type ArcadeGame = "flash" | "memory" | "truefalse" | "compare" | "sign";
 
 export const ARCADE_GAMES: { id: ArcadeGame; label: string; rules: string; unit: string; max: number }[] = [
   {
@@ -25,7 +25,32 @@ export const ARCADE_GAMES: { id: ArcadeGame; label: string; rules: string; unit:
     unit: "digits",
     max: 40,
   },
+  {
+    id: "truefalse",
+    label: "True or False",
+    rules: "Is the sum right? Answer as many as you can in 60 seconds. A wrong answer costs 3 seconds. Keys: ← true, → false.",
+    unit: "right",
+    max: 200,
+  },
+  {
+    id: "compare",
+    label: "Bigger or Smaller",
+    rules: "Pick the bigger of two sums. As many as you can in 60 seconds; a wrong pick costs 3 seconds. Keys: ← left, → right.",
+    unit: "right",
+    max: 200,
+  },
+  {
+    id: "sign",
+    label: "Missing Sign",
+    rules: "Choose the sign that makes the sum true. As many as you can in 60 seconds; a wrong pick costs 3 seconds. Keys: 1 to 4.",
+    unit: "right",
+    max: 200,
+  },
 ];
+
+/** The 60-second rounds, as opposed to the endless runs. */
+export const isBlitz = (game: ArcadeGame): game is "truefalse" | "compare" | "sign" =>
+  game === "truefalse" || game === "compare" || game === "sign";
 
 export const arcadeInfo = (game: ArcadeGame) => ARCADE_GAMES.find((g) => g.id === game)!;
 

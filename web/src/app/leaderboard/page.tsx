@@ -17,6 +17,9 @@ const KINDS: { value: LeaderboardKind; label: string }[] = [
   { value: "daily-hectoc", label: "Hectoc" },
   { value: "arcade-flash", label: "Flash Anzan" },
   { value: "arcade-memory", label: "Number Memory" },
+  { value: "arcade-truefalse", label: "True or False" },
+  { value: "arcade-compare", label: "Bigger or Smaller" },
+  { value: "arcade-sign", label: "Missing Sign" },
 ];
 
 const solveBoard = (game: string) => ({ value: "Time", detail: null, empty: `Nobody has solved today's ${game} yet.` });
@@ -31,6 +34,9 @@ const COLUMNS: Record<LeaderboardKind, { value: string; detail: string | null; e
   "daily-hectoc": solveBoard("Hectoc"),
   "arcade-flash": { value: "Best level", detail: "Runs", empty: "Nobody has played Flash Anzan yet." },
   "arcade-memory": { value: "Best digits", detail: "Runs", empty: "Nobody has played Number Memory yet." },
+  "arcade-truefalse": { value: "Best score", detail: "Rounds", empty: "Nobody has played True or False yet." },
+  "arcade-compare": { value: "Best score", detail: "Rounds", empty: "Nobody has played Bigger or Smaller yet." },
+  "arcade-sign": { value: "Best score", detail: "Rounds", empty: "Nobody has played Missing Sign yet." },
 };
 
 export default function LeaderboardPage() {

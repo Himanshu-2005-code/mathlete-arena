@@ -41,5 +41,9 @@ export function PuzzlePlayer({ p, onSolved }: { p: AnyPublicPuzzle; onSolved: (s
       return <ExpressionBoard key={key} kind="hectoc" puzzle={p.puzzle} onSolved={exprs} />;
     case "make24":
       return <ExpressionBoard key={key} kind="make24" puzzle={p.puzzle} onSolved={exprs} />;
+    case "killer":
+      return <NumberGridBoard key={key} kind="killer" puzzle={p.puzzle} onSolved={grid} />;
+    case "futoshiki":
+      return <NumberGridBoard key={key} kind="futoshiki" puzzle={p.puzzle} onSolved={grid} />;
   }
 }

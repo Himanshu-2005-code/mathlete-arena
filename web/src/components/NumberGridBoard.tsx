@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   type KenKenCheck,
   type KenKenOp,
+  type PublicFutoshiki,
   type PublicKenKen,
+  type PublicKiller,
   type PublicSudoku,
+  checkFutoshiki,
   checkKenKen,
+  checkKiller,
   checkSudoku,
 } from "@matik/shared";
 import { playCorrect, playWrong } from "@/lib/sound";
@@ -14,8 +18,9 @@ import { formatTime } from "./CrossMathBoard";
 import { useStopwatch } from "./useStopwatch";
 
 /**
- * One board for both KenKen and Sudoku: an n×n grid filled with 1..n.
- * KenKen draws cage outlines with their targets; Sudoku draws boxes and givens.
+ * One board for every n×n number grid: KenKen (bold cages with targets),
+ * Sudoku (bold boxes, givens), Killer Sudoku (bold boxes plus dashed sum
+ * cages) and Futoshiki (less-than signs between cells).
  */
 
 export interface GridSolved {
@@ -26,14 +31,23 @@ export interface GridSolved {
 
 type Props =
   | { kind: "kenken"; puzzle: PublicKenKen; onSolved: (s: GridSolved) => void }
-  | { kind: "sudoku"; puzzle: PublicSudoku; onSolved: (s: GridSolved) => void };
+  | { kind: "sudoku"; puzzle: PublicSudoku; onSolved: (s: GridSolved) => void }
+  | { kind: "killer"; puzzle: PublicKiller; onSolved: (s: GridSolved) => void }
+  | { kind: "futoshiki"; puzzle: PublicFutoshiki; onSolved: (s: GridSolved) => void };
+
+const GRID_LABELS: Record<Props["kind"], string> = {
+  kenken: "KenKen grid",
+  sudoku: "Sudoku grid",
+  killer: "Killer Sudoku grid",
+  futoshiki: "Futoshiki grid",
+};
 
 const showOp = (op: KenKenOp) => (op === "-" ? "−" : op);
 
 export function NumberGridBoard(props: Props) {
   const n = props.puzzle.size;
   const givens: (number | null)[][] =
-    props.kind === "sudoku" ? props.puzzle.givens : Array.from({ length: n }, () => Array(n).fill(null));
+    props.kind === "kenken" ? Array.from({ length: n }, () => Array(n).fill(null)) : props.puzzle.givens;
 
   const [grid, setGrid] = useState<(number | null)[][]>(() => givens.map((row) => [...row]));
   const [notes, setNotes] = useState<number[][][]>(() => Array.from({ length: n }, () => Array.from({ length: n }, () => [])));
@@ -44,32 +58,64 @@ export function NumberGridBoard(props: Props) {
   const boardRef = useRef<HTMLDivElement>(null);
   const { elapsed, now } = useStopwatch(solved);
 
-  // Which group each cell belongs to, for thick borders: cages for KenKen, boxes for Sudoku.
-  const groupOf = useMemo(() => {
-    const g = Array.from({ length: n }, () => Array(n).fill(0));
-    if (props.kind === "kenken") props.puzzle.cages.forEach((cage, i) => cage.cells.forEach(([r, c]) => (g[r][c] = i)));
-    else {
-      const { rows, cols } = props.puzzle.box;
-      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) g[r][c] = Math.floor(r / rows) * (n / cols) + Math.floor(c / cols);
+  const layout = useMemo(() => {
+    // groupOf: bold outlines (KenKen cages, Sudoku boxes). cageOf: the cage a cell's
+    // total belongs to (KenKen, Killer), or -1. dashed: Killer cages drawn inside boxes.
+    const groupOf = Array.from({ length: n }, () => Array(n).fill(0));
+    const cageOf = Array.from({ length: n }, () => Array(n).fill(-1));
+    const labels = new Map<string, string>();
+    const signs = new Map<string, { right?: string; below?: string }>();
+    const corner = (cells: [number, number][]) => [...cells].sort((a, b) => a[0] - b[0] || a[1] - b[1])[0];
+
+    if (props.kind === "kenken") {
+      props.puzzle.cages.forEach((cage, i) => {
+        cage.cells.forEach(([r, c]) => (groupOf[r][c] = cageOf[r][c] = i));
+        const [r, c] = corner(cage.cells);
+        labels.set(`${r},${c}`, `${cage.target}${showOp(cage.op)}`);
+      });
     }
-    return g;
-  }, [props.kind, props.puzzle, n]);
-
-  // Cage labels sit in each cage's top-left cell.
-  const labels = useMemo(() => {
-    const m = new Map<string, string>();
-    if (props.kind === "kenken")
-      for (const cage of props.puzzle.cages) {
-        const [r, c] = [...cage.cells].sort((a, b) => a[0] - b[0] || a[1] - b[1])[0];
-        m.set(`${r},${c}`, `${cage.target}${showOp(cage.op)}`);
+    if (props.kind === "sudoku" || props.kind === "killer") {
+      const { rows, cols } = props.puzzle.box;
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) groupOf[r][c] = Math.floor(r / rows) * (n / cols) + Math.floor(c / cols);
+    }
+    if (props.kind === "killer") {
+      props.puzzle.cages.forEach((cage, i) => {
+        cage.cells.forEach(([r, c]) => (cageOf[r][c] = i));
+        const [r, c] = corner(cage.cells);
+        labels.set(`${r},${c}`, String(cage.sum));
+      });
+    }
+    if (props.kind === "futoshiki") {
+      // Each sign sits on the edge between two cells, owned by the left or upper one.
+      for (const [[ar, ac], [br, bc]] of props.puzzle.lessThan) {
+        const aFirst = ar < br || ac < bc;
+        const [fr, fc] = aFirst ? [ar, ac] : [br, bc];
+        const firstIsSmaller = aFirst;
+        const k = `${fr},${fc}`;
+        const entry = signs.get(k) ?? {};
+        if (ar === br) entry.right = firstIsSmaller ? "<" : ">";
+        else entry.below = firstIsSmaller ? "∧" : "∨";
+        signs.set(k, entry);
       }
-    return m;
-  }, [props.kind, props.puzzle]);
+    }
+    return { groupOf, cageOf, labels, signs, dashed: props.kind === "killer" };
+  }, [props.kind, props.puzzle, n]);
+  const { groupOf, cageOf, labels, signs } = layout;
 
-  // Sudoku has no cages, so its cage list is empty.
+  // Sudoku and Futoshiki have no cages, so their cage list is empty.
   const check = useCallback(
-    (g: (number | null)[][]): KenKenCheck =>
-      props.kind === "kenken" ? checkKenKen(props.puzzle, g) : { ...checkSudoku(props.puzzle, g), cageOk: [] },
+    (g: (number | null)[][]): KenKenCheck => {
+      switch (props.kind) {
+        case "kenken":
+          return checkKenKen(props.puzzle, g);
+        case "killer":
+          return checkKiller(props.puzzle, g);
+        case "sudoku":
+          return { ...checkSudoku(props.puzzle, g), cageOk: [] };
+        case "futoshiki":
+          return { ...checkFutoshiki(props.puzzle, g), cageOk: [] };
+      }
+    },
     [props.kind, props.puzzle],
   );
   const result = useMemo(() => check(grid), [check, grid]);
@@ -104,8 +150,8 @@ export function NumberGridBoard(props: Props) {
     // A placement that clashes, or completes a wrong cage, counts as a mistake.
     const after = check(next);
     const clash = after.conflicts[r][c];
-    const g = groupOf[r][c];
-    const badCage = after.cageOk[g] === false && cageOk[g] !== false;
+    const g = cageOf[r][c];
+    const badCage = g >= 0 && after.cageOk[g] === false && cageOk[g] !== false;
     if (clash || badCage) {
       setMistakes((m) => m + 1);
       playWrong();
@@ -133,6 +179,13 @@ export function NumberGridBoard(props: Props) {
     const cc = c + dc;
     return rr < 0 || cc < 0 || rr >= n || cc >= n || groupOf[rr][cc] !== groupOf[r][c];
   };
+  // Killer cages: a dashed line where the cage changes but the box doesn't.
+  const dash = (r: number, c: number, dr: number, dc: number) => {
+    if (!layout.dashed) return false;
+    const rr = r + dr;
+    const cc = c + dc;
+    return rr >= 0 && cc >= 0 && rr < n && cc < n && cageOf[rr][cc] !== cageOf[r][c] && !edge(r, c, dr, dc);
+  };
 
   return (
     <>
@@ -149,10 +202,10 @@ export function NumberGridBoard(props: Props) {
       <div className="puzzle-wrap">
         <div
           ref={boardRef}
-          className={`ngrid size-${n}`}
+          className={`ngrid size-${n}${props.kind === "futoshiki" ? " futoshiki" : ""}`}
           style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}
           role="grid"
-          aria-label={props.kind === "kenken" ? "KenKen grid" : "Sudoku grid"}
+          aria-label={GRID_LABELS[props.kind]}
           tabIndex={0}
           onKeyDown={onKeyDown}
         >
@@ -160,13 +213,19 @@ export function NumberGridBoard(props: Props) {
             row.map((v, c) => {
               const selected = sel[0] === r && sel[1] === c;
               const label = labels.get(`${r},${c}`);
-              const cageBad = cageOk[groupOf[r][c]] === false;
+              const cageBad = cageOf[r][c] >= 0 && cageOk[cageOf[r][c]] === false;
+              const sign = signs.get(`${r},${c}`);
               const classes = [
                 "ncell",
                 edge(r, c, -1, 0) && "bt",
                 edge(r, c, 0, 1) && "br",
                 edge(r, c, 1, 0) && "bb",
                 edge(r, c, 0, -1) && "bl",
+                dash(r, c, -1, 0) && "dt",
+                dash(r, c, 0, 1) && "dr",
+                dash(r, c, 1, 0) && "db",
+                dash(r, c, 0, -1) && "dl",
+                props.kind === "futoshiki" && "spaced",
                 isGiven(r, c) && "given",
                 selected && "selected",
                 (result.conflicts[r][c] || cageBad) && "clash",
@@ -187,6 +246,16 @@ export function NumberGridBoard(props: Props) {
                   tabIndex={-1}
                 >
                   {label && <span className="cage-label">{label}</span>}
+                  {sign?.right && (
+                    <span className="sign sign-right" aria-hidden>
+                      {sign.right}
+                    </span>
+                  )}
+                  {sign?.below && (
+                    <span className="sign sign-below" aria-hidden>
+                      {sign.below}
+                    </span>
+                  )}
                   {v !== null ? (
                     <span className="nval">{v}</span>
                   ) : notes[r][c].length > 0 ? (

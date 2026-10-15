@@ -1217,3 +1217,119 @@ button.xcell.selected {
     padding: 0;
   }
 }
+
+/* ---------- Killer Sudoku cages ---------- */
+
+.ncell.dt {
+  border-top: 1.5px dashed var(--ink-soft);
+}
+.ncell.dr {
+  border-right: 1.5px dashed var(--ink-soft);
+}
+.ncell.db {
+  border-bottom: 1.5px dashed var(--ink-soft);
+}
+.ncell.dl {
+  border-left: 1.5px dashed var(--ink-soft);
+}
+
+/* ---------- Futoshiki signs ---------- */
+
+.ngrid.futoshiki {
+  gap: 14px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  width: min(100%, calc(var(--n, 6) * (var(--cell) + 14px)));
+}
+
+.ncell.spaced {
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.sign {
+  position: absolute;
+  z-index: 1;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--margin-red);
+  pointer-events: none;
+}
+
+/* The 2px border plus half the 14px gap puts the sign midway between cells. */
+.sign-right {
+  right: -9px;
+  top: 50%;
+  transform: translate(50%, -50%);
+}
+
+.sign-below {
+  bottom: -9px;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+
+/* ---------- Blitz ---------- */
+
+.blitz-prompt {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(2.6rem, 9vw, 5.5rem);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 40px 0 28px;
+}
+
+.blitz-prompt.small {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  color: var(--pencil);
+  font-weight: 700;
+}
+
+.blitz-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  max-width: 640px;
+}
+
+.blitz-choice {
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.4rem, 5vw, 2.2rem);
+  min-height: 84px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.blitz-choice:hover {
+  background: var(--tile);
+}
+
+.blitz-choice kbd {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--pencil);
+  margin-top: 4px;
+}
+
+.blitz-choices.wrong {
+  animation: shake 0.28s;
+}
+
+.penalty {
+  color: var(--margin-red);
+  font-weight: 700;
+}

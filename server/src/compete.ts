@@ -49,7 +49,9 @@ const puzzleBody = z.object({
 type DailyKind = "sprint" | "puzzle" | DailyExtraKind;
 
 /** Cross-math was the first daily puzzle and is stored as "puzzle". */
-const dailyKindOf = (kind: Exclude<PuzzleKind, "make24">): DailyKind => (kind === "crossmath" ? "puzzle" : kind);
+const dailyKindOf = (kind: "crossmath" | DailyExtraKind): DailyKind => (kind === "crossmath" ? "puzzle" : kind);
+const isDailyKind = (kind: PuzzleKind): kind is "crossmath" | DailyExtraKind =>
+  kind === "crossmath" || (DAILY_EXTRA_KINDS as string[]).includes(kind);
 
 /** Today's puzzle of a kind: same seed and difficulty for everyone. */
 export function dailyPuzzle(day: string, kind: PuzzleKind) {
@@ -173,7 +175,9 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
     }
     const day = today();
     const { kind, grid, path, expressions, timeMs } = parsed.data;
-    if (kind === "make24") return void res.status(400).json({ error: "Make 24 isn't part of the daily challenge" });
+    if (!isDailyKind(kind)) {
+      return void res.status(400).json({ error: `${puzzleInfo(kind).label} isn't part of the daily challenge` });
+    }
     const { seed, difficulty } = dailyPuzzle(day, kind);
     if (!verifyPuzzle(kind, seed, difficulty, { grid, path, expressions })) {
       return void res.status(400).json({ error: "That doesn't solve today's puzzle" });

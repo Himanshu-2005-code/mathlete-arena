@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   type ClientToServerEvents,
   type ServerToClientEvents,
+  generateFutoshiki,
   generateHectoc,
+  generateKiller,
   generateKenKen,
   generateMake24,
   generateMaze,
@@ -425,7 +427,13 @@ describe("number puzzles and arcade", () => {
       { rank: 1, username: "memo1", value: 8, detail: 1 },
       { rank: 2, username: "flashy", value: 6, detail: 2 },
     ]);
-    expect((await request(app).get("/api/stats").set(b)).body.arcade).toEqual({ flash: 8, memory: 9 });
+    expect((await request(app).get("/api/stats").set(b)).body.arcade).toEqual({
+      flash: 8,
+      memory: 9,
+      truefalse: 0,
+      compare: 0,
+      sign: 0,
+    });
   });
 
   it("limits sign-in attempts and sets basic security headers", async () => {
@@ -438,5 +446,62 @@ describe("number puzzles and arcade", () => {
     const health = await request(app).get("/api/health");
     expect(health.headers["x-content-type-options"]).toBe("nosniff");
     expect(health.headers["x-powered-by"]).toBeUndefined();
+  });
+});
+
+describe("Killer Sudoku, Futoshiki and blitz", () => {
+  async function user(app: ReturnType<typeof createApp>, name: string) {
+    const t = (await request(app).post("/api/auth/register").send({ username: name, password: "secret123" })).body.token;
+    return { Authorization: `Bearer ${t}` };
+  }
+
+  it("verifies Killer Sudoku and Futoshiki solves, and keeps them out of the daily challenge", async () => {
+    const { app } = await setup();
+    const auth = await user(app, "griddy");
+    const k = generateKiller(31);
+    const f = generateFutoshiki(31, "hard");
+    const post = (body: object) => request(app).post("/api/results/puzzle").set(auth).send(body);
+    expect((await post({ kind: "killer", seed: 31, difficulty: "easy", grid: k.solution, timeMs: 120_000, mistakes: 0 })).status).toBe(201);
+    expect((await post({ kind: "futoshiki", seed: 31, difficulty: "hard", grid: f.solution, timeMs: 90_000, mistakes: 1 })).status).toBe(201);
+    const wrong = f.solution.map((row) => [...row].reverse());
+    expect((await post({ kind: "futoshiki", seed: 31, difficulty: "hard", grid: wrong, timeMs: 9_000, mistakes: 0 })).status).toBe(400);
+    const daily = await request(app).post("/api/daily/puzzle").set(auth).send({ kind: "killer", grid: k.solution, timeMs: 9_000 });
+    expect(daily.status).toBe(400);
+    expect(daily.body.error).toMatch(/isn't part of the daily challenge/);
+  });
+
+  it("saves blitz rounds on their own leaderboards", async () => {
+    const { app } = await setup();
+    const auth = await user(app, "blitzer");
+    for (const game of ["truefalse", "compare", "sign"]) {
+      expect((await request(app).post("/api/arcade").set(auth).send({ game, score: 42 })).status).toBe(201);
+    }
+    expect((await request(app).post("/api/arcade").set(auth).send({ game: "sign", score: 500 })).status).toBe(400);
+    const board = (await request(app).get("/api/leaderboard?kind=arcade-compare")).body;
+    expect(board.rows).toEqual([{ rank: 1, username: "blitzer", value: 42, detail: 1 }]);
+    expect((await request(app).get("/api/stats").set(auth)).body.arcade).toMatchObject({ truefalse: 42, compare: 42, sign: 42 });
+  });
+
+  it("migrates an older arcade table so the new games can be saved", async () => {
+    const Database = (await import("better-sqlite3")).default;
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "matik-")), "arcade.db");
+    const old = new Database(file);
+    old.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash TEXT NOT NULL, rating INTEGER NOT NULL DEFAULT 1000, created_at TEXT NOT NULL DEFAULT (datetime('now')));
+      INSERT INTO users (username, password_hash) VALUES ('old', 'x');
+      CREATE TABLE arcade_results (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+      game TEXT NOT NULL CHECK (game IN ('flash', 'memory')), score INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')));
+      INSERT INTO arcade_results (user_id, game, score) VALUES (1, 'flash', 7);`);
+    old.close();
+    const db = openDb(file);
+    db.prepare("INSERT INTO arcade_results (user_id, game, score) VALUES (1, 'sign', 30)").run();
+    expect(db.prepare("SELECT game, score FROM arcade_results ORDER BY id").all()).toEqual([
+      { game: "flash", score: 7 },
+      { game: "sign", score: 30 },
+    ]);
   });
 });

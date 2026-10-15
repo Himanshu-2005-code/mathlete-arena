@@ -4,10 +4,18 @@ import { type MazeDifficulty, type PublicMaze, checkMaze, generateMaze, mazeToPu
 import { type PublicSudoku, type SudokuDifficulty, checkSudoku, generateSudoku, sudokuToPublic } from "./sudoku";
 import { type PublicHectoc, checkHectoc, generateHectoc, hectocToPublic } from "./hectoc";
 import { type Make24Difficulty, type PublicMake24, checkMake24, generateMake24, make24ToPublic } from "./make24";
+import { type PublicKiller, checkKiller, generateKiller, killerToPublic } from "./killer";
+import {
+  type FutoshikiDifficulty,
+  type PublicFutoshiki,
+  checkFutoshiki,
+  futoshikiToPublic,
+  generateFutoshiki,
+} from "./futoshiki";
 
 /** Every puzzle game, so the server and the site can treat them alike. */
 
-export type PuzzleKind = "crossmath" | "kenken" | "sudoku" | "maze" | "hectoc" | "make24";
+export type PuzzleKind = "crossmath" | "kenken" | "sudoku" | "maze" | "hectoc" | "make24" | "killer" | "futoshiki";
 
 export interface PuzzleKindInfo {
   id: PuzzleKind;
@@ -81,6 +89,24 @@ export const PUZZLE_KINDS: PuzzleKindInfo[] = [
     ],
     daily: "easy",
   },
+  {
+    id: "killer",
+    label: "Killer Sudoku",
+    rules:
+      "Sudoku rules: each number once in every row, column and box. The numbers in each dashed cage add up to its total and never repeat.",
+    difficulties: [{ id: "easy", label: "Mini, 6×6" }],
+    daily: "easy",
+  },
+  {
+    id: "futoshiki",
+    label: "Futoshiki",
+    rules: "Use each number once in every row and column, and keep every < and > sign between neighbours true.",
+    difficulties: [
+      { id: "easy", label: "Easy, 5×5" },
+      { id: "hard", label: "Hard, 6×6" },
+    ],
+    daily: "easy",
+  },
 ];
 
 export const puzzleInfo = (kind: PuzzleKind) => PUZZLE_KINDS.find((k) => k.id === kind)!;
@@ -95,7 +121,9 @@ export type AnyPublicPuzzle =
   | { kind: "sudoku"; puzzle: PublicSudoku }
   | { kind: "maze"; puzzle: PublicMaze }
   | { kind: "hectoc"; puzzle: PublicHectoc }
-  | { kind: "make24"; puzzle: PublicMake24 };
+  | { kind: "make24"; puzzle: PublicMake24 }
+  | { kind: "killer"; puzzle: PublicKiller }
+  | { kind: "futoshiki"; puzzle: PublicFutoshiki };
 
 /** What a player submits: a filled grid, a path for the maze, or expressions for Hectoc and Make 24. */
 export interface PuzzleAnswer {
@@ -118,6 +146,10 @@ export function generatePublicPuzzle(kind: PuzzleKind, seed: number, difficulty:
       return { kind, puzzle: hectocToPublic(generateHectoc(seed)) };
     case "make24":
       return { kind, puzzle: make24ToPublic(generateMake24(seed, difficulty as Make24Difficulty)) };
+    case "killer":
+      return { kind, puzzle: killerToPublic(generateKiller(seed)) };
+    case "futoshiki":
+      return { kind, puzzle: futoshikiToPublic(generateFutoshiki(seed, difficulty as FutoshikiDifficulty)) };
   }
 }
 
@@ -138,5 +170,9 @@ export function verifyPuzzle(kind: PuzzleKind, seed: number, difficulty: string,
       return answer.expressions?.length === 1 && checkHectoc(p.puzzle, answer.expressions[0]).solved;
     case "make24":
       return !!answer.expressions && checkMake24(p.puzzle, answer.expressions);
+    case "killer":
+      return !!answer.grid && checkKiller(p.puzzle, answer.grid).solved;
+    case "futoshiki":
+      return !!answer.grid && checkFutoshiki(p.puzzle, answer.grid).solved;
   }
 }

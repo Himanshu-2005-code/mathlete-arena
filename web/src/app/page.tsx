@@ -99,7 +99,8 @@ export default function Home() {
           <div>
             <h3>Puzzles</h3>
             <p>
-              Cross-math, KenKen, Sudoku, Math Maze, Hectoc (make 100 from six digits in order) and Make 24.
+              Cross-math, KenKen, Sudoku, Killer Sudoku, Futoshiki, Math Maze, Hectoc (make 100 from six digits in order)
+              and Make 24.
             </p>
           </div>
           <Link href="/puzzles" className="btn ghost">
@@ -130,7 +131,10 @@ export default function Home() {
         <li className="entry">
           <div>
             <h3>Arcade</h3>
-            <p>Flash Anzan, adding numbers as they flash past, and Number Memory. See how far you get.</p>
+            <p>
+              Flash Anzan, Number Memory, and three 60-second blitzes: True or False, Bigger or Smaller, and Missing
+              Sign.
+            </p>
           </div>
           <Link href="/arcade" className="btn ghost">
             Arcade

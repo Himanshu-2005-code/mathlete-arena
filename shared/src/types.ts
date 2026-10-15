@@ -67,7 +67,7 @@ export interface Stats {
   };
   dailyStreak: { current: number; best: number };
   /** Best arcade scores; 0 when not played. */
-  arcade: { flash: number; memory: number };
+  arcade: Record<import("./arcade").ArcadeGame, number>;
   duels: {
     played: number;
     won: number;
@@ -143,7 +143,10 @@ export type LeaderboardKind =
   | "daily-maze"
   | "daily-hectoc"
   | "arcade-flash"
-  | "arcade-memory";
+  | "arcade-memory"
+  | "arcade-truefalse"
+  | "arcade-compare"
+  | "arcade-sign";
 
 export const LEADERBOARD_KINDS: LeaderboardKind[] = [
   "rating",
@@ -155,6 +158,9 @@ export const LEADERBOARD_KINDS: LeaderboardKind[] = [
   "daily-hectoc",
   "arcade-flash",
   "arcade-memory",
+  "arcade-truefalse",
+  "arcade-compare",
+  "arcade-sign",
 ];
 
 export interface ArcadeResult {
