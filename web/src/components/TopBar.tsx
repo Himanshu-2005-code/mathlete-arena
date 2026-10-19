@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useSoundSetting } from "@/lib/sound";
+import { useTheme } from "@/lib/theme";
 
 const LINKS = [
   { href: "/duel", label: "Duel" },
@@ -21,6 +22,7 @@ export function TopBar() {
   const { user, ready, signOut } = useAuth();
   const [sound, setSound] = useSoundSetting();
   const [open, setOpen] = useState(false);
+  const [theme, cycleTheme] = useTheme();
 
   // Close the phone menu whenever the page changes.
   useEffect(() => setOpen(false), [pathname]);
@@ -47,6 +49,14 @@ export function TopBar() {
         ))}
       </nav>
       <span className="who">
+        <button
+          type="button"
+          className="linkish"
+          onClick={cycleTheme}
+          title="Switch between light, dark, and your device's setting"
+        >
+          Theme: {theme === "system" ? "auto" : theme}
+        </button>
         <button
           type="button"
           className="linkish"
