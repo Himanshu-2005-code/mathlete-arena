@@ -45,6 +45,11 @@ const credentials = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").max(100),
 });
 
+const passwordChange = z.object({
+  current: z.string().min(1, "Enter your current password").max(100),
+  next: z.string().min(6, "New password must be at least 6 characters").max(100),
+});
+
 const practiceResult = z.object({
   mode: z.enum(PRACTICE_MODES.map((m) => m.id) as [string, ...string[]]),
   adaptive: z.boolean(),
@@ -131,6 +136,20 @@ export function createApp(db: Db) {
     }
     const body: AuthResponse = { token: signToken(user.id), user: toPublicUser(user) };
     res.json(body);
+  });
+
+  const setPassword = db.prepare<[string, number]>("UPDATE users SET password_hash = ? WHERE id = ?");
+
+  app.post("/api/auth/password", requireAuth, async (req, res) => {
+    const parsed = passwordChange.safeParse(req.body);
+    if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
+    const user = findById.get((req as AuthedRequest).userId);
+    if (!user) return void res.status(401).json({ error: "Account not found" });
+    if (!(await verifyPassword(parsed.data.current, user.password_hash))) {
+      return void res.status(403).json({ error: "Your current password is wrong" });
+    }
+    setPassword.run(await hashPassword(parsed.data.next), user.id);
+    res.json({ ok: true });
   });
 
   app.get("/api/me", requireAuth, (req, res) => {

@@ -40,6 +40,25 @@ describe("auth", () => {
   });
 });
 
+describe("password change", () => {
+  it("needs the current password and then accepts the new one", async () => {
+    const app = setup();
+    const token = await register(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    const wrong = await request(app).post("/api/auth/password").set(auth).send({ current: "nope", next: "brandnew1" });
+    expect(wrong.status).toBe(403);
+    const short = await request(app).post("/api/auth/password").set(auth).send({ current: "secret123", next: "abc" });
+    expect(short.status).toBe(400);
+    const ok = await request(app).post("/api/auth/password").set(auth).send({ current: "secret123", next: "brandnew1" });
+    expect(ok.status).toBe(200);
+    const old = await request(app).post("/api/auth/login").send({ username: "himanshu", password: "secret123" });
+    expect(old.status).toBe(401);
+    const fresh = await request(app).post("/api/auth/login").send({ username: "himanshu", password: "brandnew1" });
+    expect(fresh.status).toBe(200);
+    expect((await request(app).post("/api/auth/password").send({ current: "a", next: "bbbbbb" })).status).toBe(401);
+  });
+});
+
 describe("results and stats", () => {
   it("records practice sprints and verified puzzles", async () => {
     const app = setup();

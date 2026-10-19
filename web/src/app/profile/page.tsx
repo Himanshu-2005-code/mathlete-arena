@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ARCADE_GAMES, PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@matik/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ChangePassword } from "@/components/ChangePassword";
 
 const modeLabel = (id: string) => PRACTICE_MODES.find((m) => m.id === id)?.label ?? id;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -269,6 +270,7 @@ export default function ProfilePage() {
           )}
         </>
       )}
+      <ChangePassword />
     </section>
   );
 }
