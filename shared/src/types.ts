@@ -189,4 +189,6 @@ export interface Leaderboard {
   kind: LeaderboardKind;
   day: string | null;
   rows: LeaderboardRow[];
+  /** The signed-in player's own row when they're ranked but outside `rows`. */
+  me?: LeaderboardRow;
 }

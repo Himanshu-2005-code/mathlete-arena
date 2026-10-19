@@ -12,6 +12,7 @@ import {
   type DailyResult,
   DUEL_SECONDS,
   type Leaderboard,
+  type LeaderboardRow,
   type LeaderboardKind,
   checkCrossMath,
   computeStreak,
@@ -199,47 +200,55 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
       .catch("rating")
       .parse(req.query.kind);
     const limit = 50;
-    let board: Leaderboard;
+    const header = req.headers.authorization;
+    const me = verifyToken(header?.startsWith("Bearer ") ? header.slice(7) : undefined);
+    type Ranked = { uid: number; username: string; value: number; detail: number | null; bot?: number };
+    let ranked: Ranked[];
+    let day: string | null = null;
 
+    // The full ranking is small (one row per player), so rank it all and then
+    // cut the top 50, keeping the signed-in player's own row if it falls below.
     if (kind === "rating") {
-      const rows = db
+      ranked = db
         .prepare(
-          `SELECT u.username, u.rating AS value, u.is_bot AS bot,
+          `SELECT u.id AS uid, u.username, u.rating AS value, u.is_bot AS bot,
                   (SELECT COUNT(*) FROM duels d WHERE d.p1_id = u.id OR d.p2_id = u.id) AS detail
            FROM users u
            WHERE EXISTS (SELECT 1 FROM duels d WHERE d.p1_id = u.id OR d.p2_id = u.id)
-           ORDER BY u.rating DESC, u.id ASC LIMIT ?`,
+           ORDER BY u.rating DESC, u.id ASC`,
         )
-        .all(limit) as { username: string; value: number; detail: number; bot: number }[];
-      board = {
-        kind,
-        day: null,
-        rows: rows.map(({ bot, ...r }, i) => ({ rank: i + 1, ...r, ...(bot ? { bot: true } : {}) })),
-      };
+        .all() as Ranked[];
     } else if (kind.startsWith("arcade-")) {
       // All-time bests, one row per player.
-      const rows = db
+      ranked = db
         .prepare(
-          `SELECT u.username, MAX(a.score) AS value, COUNT(*) AS detail
+          `SELECT u.id AS uid, u.username, MAX(a.score) AS value, COUNT(*) AS detail
            FROM arcade_results a JOIN users u ON u.id = a.user_id
            WHERE a.game = ?
-           GROUP BY a.user_id ORDER BY value DESC, MIN(a.created_at) ASC LIMIT ?`,
+           GROUP BY a.user_id ORDER BY value DESC, MIN(a.created_at) ASC`,
         )
-        .all(kind.slice("arcade-".length), limit) as { username: string; value: number; detail: number }[];
-      board = { kind, day: null, rows: rows.map((r, i) => ({ rank: i + 1, ...r })) };
+        .all(kind.slice("arcade-".length)) as Ranked[];
     } else {
-      const day = today();
+      day = today();
       const sprint = kind === "daily-sprint";
-      const rows = db
+      ranked = db
         .prepare(
-          `SELECT u.username, ${sprint ? "r.score" : "r.time_ms"} AS value, ${sprint ? "r.correct" : "NULL"} AS detail
+          `SELECT u.id AS uid, u.username, ${sprint ? "r.score" : "r.time_ms"} AS value, ${sprint ? "r.correct" : "NULL"} AS detail
            FROM daily_results r JOIN users u ON u.id = r.user_id
            WHERE r.day = ? AND r.kind = ?
-           ORDER BY ${sprint ? "r.score DESC, r.created_at ASC" : "r.time_ms ASC, r.created_at ASC"} LIMIT ?`,
+           ORDER BY ${sprint ? "r.score DESC, r.created_at ASC" : "r.time_ms ASC, r.created_at ASC"}`,
         )
-        .all(day, kind.slice("daily-".length), limit) as { username: string; value: number; detail: number | null }[];
-      board = { kind, day, rows: rows.map((r, i) => ({ rank: i + 1, ...r })) };
+        .all(day, kind.slice("daily-".length)) as Ranked[];
     }
+
+    const toRow = ({ uid: _, bot, ...r }: Ranked, i: number): LeaderboardRow => ({
+      rank: i + 1,
+      ...r,
+      ...(bot ? { bot: true } : {}),
+    });
+    const board: Leaderboard = { kind, day, rows: ranked.slice(0, limit).map(toRow) };
+    const mine = me === null ? -1 : ranked.findIndex((r) => r.uid === me);
+    if (mine >= limit) board.me = toRow(ranked[mine], mine);
     res.json(board);
   });
 }

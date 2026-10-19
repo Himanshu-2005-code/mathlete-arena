@@ -1392,3 +1392,9 @@ button.xcell.selected {
 .rc-dot {
   fill: var(--margin-red);
 }
+
+.ledger tr.gap td {
+  color: var(--pencil);
+  padding-top: 2px;
+  padding-bottom: 2px;
+}

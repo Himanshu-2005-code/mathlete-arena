@@ -107,3 +107,25 @@ describe("results and stats", () => {
     expect(res.body.given.flat().filter((v: number | null) => v === null)).toHaveLength(7);
   });
 });
+
+describe("leaderboard rank outside the top 50", () => {
+  it("adds the signed-in player's own row", async () => {
+    const db = openDb(":memory:");
+    const app = createApp(db);
+    const addUser = db.prepare("INSERT INTO users (username, password_hash) VALUES (?, 'x')");
+    const addScore = db.prepare("INSERT INTO arcade_results (user_id, game, score) VALUES (?, 'memory', ?)");
+    for (let i = 0; i < 55; i++) addScore.run(Number(addUser.run(`player${i}`).lastInsertRowid), 20 + i);
+    const token = await register(app);
+    await request(app).post("/api/arcade").set({ Authorization: `Bearer ${token}` }).send({ game: "memory", score: 3 });
+
+    const anon = (await request(app).get("/api/leaderboard?kind=arcade-memory")).body;
+    expect(anon.rows).toHaveLength(50);
+    expect(anon.me).toBeUndefined();
+
+    const mine = (
+      await request(app).get("/api/leaderboard?kind=arcade-memory").set({ Authorization: `Bearer ${token}` })
+    ).body;
+    expect(mine.me).toMatchObject({ rank: 56, username: "himanshu", value: 3 });
+    expect(mine.me.uid).toBeUndefined();
+  });
+});
