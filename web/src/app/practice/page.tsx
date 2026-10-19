@@ -47,6 +47,9 @@ export default function PracticePage() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
 
+  // Every question shown this sprint, for the review afterwards.
+  const [log, setLog] = useState<{ text: string; answer: number; ms: number; missed: boolean }[]>([]);
+  const misses = useRef(0);
   const rng = useRef(createRng(1));
   const difficulty = useRef(new AdaptiveDifficulty(1));
   const shownAt = useRef(0);
@@ -59,6 +62,7 @@ export default function PracticePage() {
     const level = adaptive ? difficulty.current.level : fixedLevel;
     setQuestion(generateQuestion(rng.current, mode, level));
     setValue("");
+    misses.current = 0;
     shownAt.current = performance.now();
   }, [adaptive, fixedLevel, mode]);
 
@@ -66,6 +70,7 @@ export default function PracticePage() {
     rng.current = createRng(randomSeed());
     difficulty.current = new AdaptiveDifficulty(adaptive ? 1 : fixedLevel);
     setTally(emptyTally(adaptive ? 1 : fixedLevel));
+    setLog([]);
     setSaveState("idle");
     setSaveError("");
     endsAt.current = performance.now() + seconds * 1000;
@@ -108,6 +113,7 @@ export default function PracticePage() {
       maxLevel: Math.max(t.maxLevel, question.level, currentLevel()),
       totalMs: t.totalMs + ms,
     }));
+    setLog((l) => [...l, { text: question.text, answer: question.answer, ms, missed: misses.current > 0 }]);
     nextQuestion();
   };
 
@@ -117,6 +123,12 @@ export default function PracticePage() {
     if (Number(value) === question.answer) return;
     if (adaptive) difficulty.current.record(false, performance.now() - shownAt.current);
     setTally((t) => ({ ...t, attempts: t.attempts + 1 }));
+    misses.current += 1;
+    if (adaptive)
+      setLog((l) => [
+        ...l,
+        { text: question.text, answer: question.answer, ms: performance.now() - shownAt.current, missed: true },
+      ]);
     setValue("");
     setShake(true);
     playWrong();
@@ -251,6 +263,10 @@ export default function PracticePage() {
 
   const accuracy = tally.attempts ? Math.round((tally.correct / tally.attempts) * 100) : 0;
   const avg = tally.correct ? (tally.totalMs / tally.correct / 1000).toFixed(2) : "–";
+  // Missed questions first, then the slowest right answers.
+  const review = [...log]
+    .sort((a, b) => Number(b.missed) - Number(a.missed) || b.ms - a.ms)
+    .slice(0, 5);
 
   return (
     <section className="results">
@@ -277,6 +293,30 @@ export default function PracticePage() {
           <span className="label">highest level</span>
         </div>
       </div>
+
+      {review.length > 0 && (
+        <div className="section">
+          <h2>Worth another look</h2>
+          <table className="ledger">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th className="r">Answer</th>
+                <th className="r">Took</th>
+              </tr>
+            </thead>
+            <tbody>
+              {review.map((q, i) => (
+                <tr key={i}>
+                  <td className="num">{q.text}</td>
+                  <td className="r num">{q.answer}</td>
+                  <td className="r num">{q.missed ? "missed" : `${(q.ms / 1000).toFixed(1)}s`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {user ? (
         <p className="notice" aria-live="polite">
