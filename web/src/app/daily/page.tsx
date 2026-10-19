@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Countdown } from "@/components/Countdown";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type AnyPublicPuzzle,
@@ -293,8 +294,9 @@ export default function DailyPage() {
       <h1>Daily challenge</h1>
       <p className="lede">
         {date}. Six games, the same for everyone today, and your first try at each is the one that counts. Play any one
-        to keep your streak. A new set starts at midnight.
+        to keep your streak.
       </p>
+      <Countdown to={info.nextAt} />
       {streak && (
         <p className="streak">
           {streak.current > 0 ? (

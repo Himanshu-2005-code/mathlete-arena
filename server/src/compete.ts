@@ -16,6 +16,7 @@ import {
   checkCrossMath,
   computeStreak,
   dailySeed,
+  nextDayStart,
   dayKey,
   generateCrossMath,
   pointsFor,
@@ -128,6 +129,7 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
     const info: DailyInfo = {
       day,
       sprintSeed: dailySeed(day, "sprint"),
+      nextAt: nextDayStart(new Date(), DAILY_UTC_OFFSET_MIN).toISOString(),
       sprintSeconds: DAILY_SPRINT_SECONDS,
       puzzle: toPublic(generateCrossMath(dailyPuzzle(day, "crossmath").seed, DAILY_PUZZLE_DIFFICULTY)),
       mine: {

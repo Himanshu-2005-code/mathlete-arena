@@ -37,6 +37,12 @@ export function dayKey(date: Date, offsetMinutes: number): string {
   return new Date(date.getTime() + offsetMinutes * 60_000).toISOString().slice(0, 10);
 }
 
+/** The moment the day after `date`'s day key begins, in the same offset. */
+export function nextDayStart(date: Date, offsetMinutes: number): Date {
+  const start = Date.parse(`${dayKey(date, offsetMinutes)}T00:00:00Z`) - offsetMinutes * 60_000;
+  return new Date(start + 86_400_000);
+}
+
 /** Stable seed for a day and purpose, so everyone gets the same challenge. */
 export function dailySeed(day: string, purpose: "sprint" | "puzzle"): number {
   let h = 2166136261;

@@ -102,3 +102,14 @@ describe("Blitz", () => {
     expect(isPlausibleArcadeScore("sign", 201)).toBe(false);
   });
 });
+
+describe("nextDayStart", () => {
+  it("returns the next midnight in the given offset", async () => {
+    const { nextDayStart, dayKey } = await import("./duel");
+    // 23:00 IST on 18 Oct is 17:30 UTC; the next IST midnight is 18:30 UTC.
+    const at = new Date("2026-10-18T17:30:00Z");
+    expect(nextDayStart(at, 330).toISOString()).toBe("2026-10-18T18:30:00.000Z");
+    expect(dayKey(nextDayStart(at, 330), 330)).toBe("2026-10-19");
+    expect(nextDayStart(new Date("2026-10-18T00:00:00Z"), 0).toISOString()).toBe("2026-10-19T00:00:00.000Z");
+  });
+});

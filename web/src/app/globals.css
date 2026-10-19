@@ -1346,3 +1346,8 @@ button.xcell.selected {
   color: var(--margin-red);
   font-weight: 700;
 }
+
+.countdown {
+  margin-top: 4px;
+  color: var(--ink-soft);
+}

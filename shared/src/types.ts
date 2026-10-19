@@ -125,6 +125,8 @@ export interface DailyInfo {
   day: string;
   sprintSeed: number;
   sprintSeconds: number;
+  /** When the next day's set starts (ISO time). */
+  nextAt: string;
   puzzle: import("./crossmath").PublicPuzzle;
   /** Present when signed in and already played today. */
   mine: { sprint: DailyResult | null; puzzle: DailyResult | null };
