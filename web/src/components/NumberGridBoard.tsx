@@ -12,6 +12,7 @@ import {
   checkKenKen,
   checkKiller,
   checkSudoku,
+  gridSolution,
 } from "@matik/shared";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { formatTime } from "./CrossMathBoard";
@@ -29,11 +30,12 @@ export interface GridSolved {
   mistakes: number;
 }
 
-type Props =
-  | { kind: "kenken"; puzzle: PublicKenKen; onSolved: (s: GridSolved) => void }
-  | { kind: "sudoku"; puzzle: PublicSudoku; onSolved: (s: GridSolved) => void }
-  | { kind: "killer"; puzzle: PublicKiller; onSolved: (s: GridSolved) => void }
-  | { kind: "futoshiki"; puzzle: PublicFutoshiki; onSolved: (s: GridSolved) => void };
+type Props = (
+  | { kind: "kenken"; puzzle: PublicKenKen }
+  | { kind: "sudoku"; puzzle: PublicSudoku }
+  | { kind: "killer"; puzzle: PublicKiller }
+  | { kind: "futoshiki"; puzzle: PublicFutoshiki }
+) & { onSolved: (s: GridSolved) => void; hints?: boolean };
 
 const GRID_LABELS: Record<Props["kind"], string> = {
   kenken: "KenKen grid",
@@ -55,6 +57,7 @@ export function NumberGridBoard(props: Props) {
   const [noteMode, setNoteMode] = useState(false);
   const [mistakes, setMistakes] = useState(0);
   const [solved, setSolved] = useState(false);
+  const [hinted, setHinted] = useState<Set<string>>(() => new Set());
   const boardRef = useRef<HTMLDivElement>(null);
   const { elapsed, now } = useStopwatch(solved);
 
@@ -128,7 +131,29 @@ export function NumberGridBoard(props: Props) {
     onSolved({ grid, timeMs: now(), mistakes });
   }, [result.solved, solved, grid, mistakes, onSolved, now]);
 
-  const isGiven = (r: number, c: number) => givens[r][c] !== null;
+  const isGiven = (r: number, c: number) => givens[r][c] !== null || hinted.has(`${r},${c}`);
+
+  // A hint fills one cell with its answer: the selected cell if it's empty or
+  // wrong, otherwise the first such cell. Each one counts as a mistake.
+  const solution = useMemo(
+    () => (props.hints ? gridSolution(props.kind, props.puzzle.seed, props.puzzle.difficulty) : null),
+    [props.hints, props.kind, props.puzzle],
+  );
+  const hint = () => {
+    if (!solution || solved) return;
+    const wrong = (r: number, c: number) => !isGiven(r, c) && grid[r][c] !== solution[r][c];
+    let target: [number, number] | null = wrong(sel[0], sel[1]) ? sel : null;
+    for (let r = 0; r < n && !target; r++) for (let c = 0; c < n && !target; c++) if (wrong(r, c)) target = [r, c];
+    if (!target) return;
+    const [r, c] = target;
+    const next = grid.map((row) => [...row]);
+    next[r][c] = solution[r][c];
+    setGrid(next);
+    setHinted((h) => new Set(h).add(`${r},${c}`));
+    setSel([r, c]);
+    setMistakes((m) => m + 1);
+    boardRef.current?.focus();
+  };
 
   const enter = (value: number | null) => {
     if (solved) return;
@@ -227,6 +252,7 @@ export function NumberGridBoard(props: Props) {
                 dash(r, c, 0, -1) && "dl",
                 props.kind === "futoshiki" && "spaced",
                 isGiven(r, c) && "given",
+                hinted.has(`${r},${c}`) && "hinted",
                 selected && "selected",
                 (result.conflicts[r][c] || cageBad) && "clash",
                 !selected && (sel[0] === r || sel[1] === c) && "line",
@@ -282,11 +308,19 @@ export function NumberGridBoard(props: Props) {
             <button type="button" className="tile erase" disabled={solved} onClick={() => enter(null)}>
               Erase
             </button>
+            {solution && (
+              <button type="button" className="tile erase" disabled={solved} onClick={hint}>
+                Hint
+              </button>
+            )}
           </div>
           <label className="note-toggle">
             <input type="checkbox" checked={noteMode} onChange={(e) => setNoteMode(e.target.checked)} /> Pencil notes
           </label>
-          <p className="hint">Type numbers or tap the pad. Arrow keys move, N toggles notes.</p>
+          <p className="hint">
+            Type numbers or tap the pad. Arrow keys move, N toggles notes.
+            {solution && " A hint fills in one cell and counts as a mistake."}
+          </p>
         </div>
       </div>
     </>

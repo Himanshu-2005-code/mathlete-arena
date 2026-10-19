@@ -1351,3 +1351,7 @@ button.xcell.selected {
   margin-top: 4px;
   color: var(--ink-soft);
 }
+
+.ncell.hinted .nval {
+  color: var(--correct);
+}

@@ -83,7 +83,7 @@ export default function PuzzlesPage() {
         options={info.difficulties.map((d) => ({ value: d.id, label: d.label }))}
       />
 
-      {puzzle && <PuzzlePlayer p={puzzle} onSolved={onSolved} />}
+      {puzzle && <PuzzlePlayer p={puzzle} onSolved={onSolved} hints />}
 
       {solvedMs !== null ? (
         <div aria-live="polite">

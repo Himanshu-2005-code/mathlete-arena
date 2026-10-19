@@ -14,7 +14,16 @@ export interface PuzzleSolved {
 }
 
 /** Shows the right board for any puzzle kind and reports the solve the same way. */
-export function PuzzlePlayer({ p, onSolved }: { p: AnyPublicPuzzle; onSolved: (s: PuzzleSolved) => void }) {
+export function PuzzlePlayer({
+  p,
+  onSolved,
+  hints = false,
+}: {
+  p: AnyPublicPuzzle;
+  onSolved: (s: PuzzleSolved) => void;
+  /** Offer a Hint button on number grids (practice only). */
+  hints?: boolean;
+}) {
   const grid = useCallback(
     (s: SolvedInfo | GridSolved) => onSolved({ answer: { grid: s.grid }, timeMs: s.timeMs, mistakes: s.mistakes }),
     [onSolved],
@@ -32,9 +41,9 @@ export function PuzzlePlayer({ p, onSolved }: { p: AnyPublicPuzzle; onSolved: (s
     case "crossmath":
       return <CrossMathBoard key={key} puzzle={p.puzzle} onSolved={grid} />;
     case "kenken":
-      return <NumberGridBoard key={key} kind="kenken" puzzle={p.puzzle} onSolved={grid} />;
+      return <NumberGridBoard key={key} kind="kenken" puzzle={p.puzzle} onSolved={grid} hints={hints} />;
     case "sudoku":
-      return <NumberGridBoard key={key} kind="sudoku" puzzle={p.puzzle} onSolved={grid} />;
+      return <NumberGridBoard key={key} kind="sudoku" puzzle={p.puzzle} onSolved={grid} hints={hints} />;
     case "maze":
       return <MazeBoard key={key} puzzle={p.puzzle} onSolved={path} />;
     case "hectoc":
@@ -42,8 +51,8 @@ export function PuzzlePlayer({ p, onSolved }: { p: AnyPublicPuzzle; onSolved: (s
     case "make24":
       return <ExpressionBoard key={key} kind="make24" puzzle={p.puzzle} onSolved={exprs} />;
     case "killer":
-      return <NumberGridBoard key={key} kind="killer" puzzle={p.puzzle} onSolved={grid} />;
+      return <NumberGridBoard key={key} kind="killer" puzzle={p.puzzle} onSolved={grid} hints={hints} />;
     case "futoshiki":
-      return <NumberGridBoard key={key} kind="futoshiki" puzzle={p.puzzle} onSolved={grid} />;
+      return <NumberGridBoard key={key} kind="futoshiki" puzzle={p.puzzle} onSolved={grid} hints={hints} />;
   }
 }

@@ -176,3 +176,23 @@ export function verifyPuzzle(kind: PuzzleKind, seed: number, difficulty: string,
       return !!answer.grid && checkFutoshiki(p.puzzle, answer.grid).solved;
   }
 }
+
+/**
+ * The full solution of a number-grid puzzle, rebuilt from its seed (for hints
+ * in practice). Null for kinds that aren't number grids.
+ */
+export function gridSolution(kind: PuzzleKind, seed: number, difficulty: string): number[][] | null {
+  if (!isDifficulty(kind, difficulty)) return null;
+  switch (kind) {
+    case "kenken":
+      return generateKenKen(seed, difficulty as KenKenDifficulty).solution;
+    case "sudoku":
+      return generateSudoku(seed, difficulty as SudokuDifficulty).solution;
+    case "killer":
+      return generateKiller(seed).solution;
+    case "futoshiki":
+      return generateFutoshiki(seed, difficulty as FutoshikiDifficulty).solution;
+    default:
+      return null;
+  }
+}

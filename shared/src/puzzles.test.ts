@@ -112,3 +112,16 @@ describe("verifyPuzzle", () => {
     expect(verifyPuzzle("kenken", 5, "medium", { grid: k.solution })).toBe(false);
   });
 });
+
+describe("gridSolution", () => {
+  it("rebuilds a solution that solves the public puzzle", async () => {
+    const { gridSolution, verifyPuzzle, PUZZLE_KINDS } = await import("./puzzles");
+    for (const kind of ["kenken", "sudoku", "killer", "futoshiki"] as const) {
+      const difficulty = PUZZLE_KINDS.find((k) => k.id === kind)!.difficulties[0].id;
+      const sol = gridSolution(kind, 4242, difficulty);
+      expect(sol).not.toBeNull();
+      expect(verifyPuzzle(kind, 4242, difficulty, { grid: sol! })).toBe(true);
+    }
+    expect(gridSolution("maze", 1, "easy")).toBeNull();
+  });
+});
