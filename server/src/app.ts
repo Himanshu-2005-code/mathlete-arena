@@ -264,6 +264,9 @@ export function createApp(db: Db) {
       )
       .all({ id: userId }) as (DuelRow & { ratingAfter: number })[];
 
+    const last = duelRows.slice(0, 50).reverse();
+    const ratingHistory = last.length ? [last[0].ratingAfter - last[0].ratingChange, ...last.map((d) => d.ratingAfter)] : [];
+
     const count = (o: DuelRow["outcome"]) => duelRows.filter((d) => d.outcome === o).length;
 
     const stats: Stats = {
@@ -284,6 +287,7 @@ export function createApp(db: Db) {
         lost: count("loss"),
         drawn: count("draw"),
         peakRating: Math.max(user.rating, ...duelRows.map((d) => d.ratingAfter)),
+        ratingHistory,
         recent: duelRows.slice(0, 10).map(({ ratingAfter: _, ...d }) => d),
       },
       recent,

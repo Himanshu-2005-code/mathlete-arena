@@ -74,6 +74,8 @@ export interface Stats {
     lost: number;
     drawn: number;
     peakRating: number;
+    /** Rating before the oldest of the last 50 duels, then after each one; oldest first. */
+    ratingHistory: number[];
     recent: DuelRow[];
   };
   recent: SessionRow[];

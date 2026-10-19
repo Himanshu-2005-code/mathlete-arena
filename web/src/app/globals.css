@@ -1355,3 +1355,40 @@ button.xcell.selected {
 .ncell.hinted .nval {
   color: var(--correct);
 }
+
+.rating-chart {
+  margin: 8px 0 0;
+  max-width: 640px;
+}
+
+.rating-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--surface);
+  border: 2px solid var(--grid);
+  border-radius: 6px;
+}
+
+.rc-grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.rc-label {
+  fill: var(--pencil);
+  font-size: 12px;
+  font-family: var(--font-body);
+}
+
+.rc-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.rc-dot {
+  fill: var(--margin-red);
+}

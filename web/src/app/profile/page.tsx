@@ -6,6 +6,7 @@ import { ARCADE_GAMES, PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@matik/s
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ChangePassword } from "@/components/ChangePassword";
+import { RatingChart } from "@/components/RatingChart";
 
 const modeLabel = (id: string) => PRACTICE_MODES.find((m) => m.id === id)?.label ?? id;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -158,6 +159,13 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+
+          {duels.ratingHistory.length > 2 && (
+            <div className="section">
+              <h2>Rating over your last {duels.ratingHistory.length - 1} duels</h2>
+              <RatingChart points={duels.ratingHistory} />
+            </div>
+          )}
 
           {duels.recent.length > 0 && (
             <div className="section">

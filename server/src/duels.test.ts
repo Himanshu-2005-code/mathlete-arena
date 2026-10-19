@@ -103,7 +103,7 @@ describe("duels", () => {
 
     const stats = (await request(app).get("/api/stats").set("Authorization", `Bearer ${a.token}`)).body;
     expect(stats.user.rating).toBe(1016);
-    expect(stats.duels).toMatchObject({ played: 1, won: 1, lost: 0, peakRating: 1016 });
+    expect(stats.duels).toMatchObject({ played: 1, won: 1, lost: 0, peakRating: 1016, ratingHistory: [1000, 1016] });
     expect(stats.duels.recent[0]).toMatchObject({ opponent: "bobby", you: 3, opponentScore: 1, outcome: "win" });
 
     const board = (await request(app).get("/api/leaderboard?kind=rating")).body;
