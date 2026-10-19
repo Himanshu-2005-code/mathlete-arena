@@ -9,7 +9,7 @@ import { attachSocket } from "./socket";
 const db = openDb();
 const app = createApp(db);
 const server = http.createServer(app);
-attachSocket(server, db, { botAfterMs: BOT_AFTER_SECONDS * 1000 });
+const { io, duels } = attachSocket(server, db, { botAfterMs: BOT_AFTER_SECONDS * 1000 });
 
 // Production: serve the built Next.js app from this same server, so the site,
 // API and sockets share one origin and one port.
@@ -26,3 +26,24 @@ if (SERVE_WEB) {
 server.listen(PORT, () => {
   console.log(`[matik] ${SERVE_WEB ? "game" : "API + sockets"} on http://localhost:${PORT}`);
 });
+
+// Hosts like Render send SIGTERM before replacing the server. Stop taking new
+// work, let sockets close, and close the database so nothing is half-written.
+let stopping = false;
+function shutdown(signal: string) {
+  if (stopping) return;
+  stopping = true;
+  console.log(`[matik] ${signal}: shutting down`);
+  const force = setTimeout(() => process.exit(1), 10_000);
+  force.unref();
+  duels.close();
+  io.close(() => {
+    server.close(() => {
+      db.close();
+      clearTimeout(force);
+      process.exit(0);
+    });
+  });
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
