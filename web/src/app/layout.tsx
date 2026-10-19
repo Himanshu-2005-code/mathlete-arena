@@ -1,11 +1,23 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/lib/auth";
 import { TopBar } from "@/components/TopBar";
 import "./globals.css";
 
+const description = "Speed math sprints, live duels, a daily challenge and number puzzles.";
+
 export const metadata: Metadata = {
-  title: "Matik",
-  description: "Speed math sprints and cross-math puzzles.",
+  title: { default: "Matik: speed math", template: "%s · Matik" },
+  description,
+  applicationName: "Matik",
+  openGraph: { title: "Matik: speed math", description, type: "website", siteName: "Matik" },
+  twitter: { card: "summary", title: "Matik: speed math", description },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f8fc" },
+    { media: "(prefers-color-scheme: dark)", color: "#12182d" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
