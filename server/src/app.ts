@@ -32,7 +32,7 @@ import { isReservedName } from "./bots";
 import { dailyStreak, registerCompetitionRoutes } from "./compete";
 import { answerExpressions, answerGrid, answerPath, arcadeGame, puzzleKind } from "./schemas";
 import rateLimit from "express-rate-limit";
-import { AUTH_RATE_LIMIT, TRUST_PROXY } from "./config";
+import { AUTH_RATE_LIMIT, LOG_REQUESTS, TRUST_PROXY } from "./config";
 import type { Db } from "./db";
 import { APP_VERSION } from "./version";
 
@@ -91,6 +91,18 @@ export function createApp(db: Db) {
     res.setHeader("X-Frame-Options", "DENY");
     next();
   });
+  // One compact line per API call: method, path, status, time. Query strings
+  // and bodies are left out so nothing private ends up in the logs.
+  if (LOG_REQUESTS) {
+    app.use("/api", (req, res, next) => {
+      const start = process.hrtime.bigint();
+      res.on("finish", () => {
+        const ms = Number(process.hrtime.bigint() - start) / 1e6;
+        console.log(`[matik] ${req.method} ${req.baseUrl}${req.path} ${res.statusCode} ${ms.toFixed(1)}ms`);
+      });
+      next();
+    });
+  }
   app.use(cors({ origin: WEB_ORIGIN }));
   // Slow down password guessing and sign-up spam.
   app.use(
