@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Countdown } from "@/components/Countdown";
+import { ShareDaily } from "@/components/ShareDaily";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type AnyPublicPuzzle,
@@ -316,6 +317,7 @@ export default function DailyPage() {
           {done} of {slots.length} played today.
         </p>
       )}
+      <ShareDaily day={info.day} slots={slots} results={results} streak={streak?.current ?? 0} />
 
       <ul className="entries daily-list">
         {slots.map((slot) => {
