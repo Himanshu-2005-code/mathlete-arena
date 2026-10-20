@@ -175,6 +175,21 @@ export interface ArcadeResult {
   newBest: boolean;
 }
 
+/** What anyone can see about a player. */
+export interface PlayerProfile {
+  username: string;
+  rating: number;
+  createdAt: string;
+  bot: boolean;
+  duels: { played: number; won: number; lost: number; drawn: number; peakRating: number };
+  puzzlesSolved: number;
+  sprints: number;
+  /** Best one-minute mixed sprint, or null. */
+  bestSprint: number | null;
+  dailyStreak: { current: number; best: number };
+  arcade: Record<import("./arcade").ArcadeGame, number>;
+}
+
 export interface LeaderboardRow {
   rank: number;
   username: string;

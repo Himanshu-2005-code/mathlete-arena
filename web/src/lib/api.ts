@@ -1,4 +1,5 @@
 import type {
+  PlayerProfile,
   ArcadeGame,
   ArcadeResult,
   AuthResponse,
@@ -72,6 +73,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   register: (username: string, password: string) =>
     call<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify({ username, password }) }),
+  player: (username: string) => call<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`),
   deleteAccount: (password: string) =>
     call<{ ok: true }>("/api/auth/delete", { method: "POST", body: JSON.stringify({ password }) }),
   changePassword: (current: string, next: string) =>

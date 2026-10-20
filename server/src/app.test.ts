@@ -68,6 +68,22 @@ describe("password change", () => {
   });
 });
 
+describe("public player pages", () => {
+  it("shows public figures only, and 404s for unknown names", async () => {
+    const app = setup();
+    const token = await register(app);
+    await request(app).post("/api/arcade").set({ Authorization: `Bearer ${token}` }).send({ game: "memory", score: 9 });
+    const res = await request(app).get("/api/players/HIMANSHU");
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ username: "himanshu", rating: 1000, bot: false, puzzlesSolved: 0, bestSprint: null });
+    expect(res.body.arcade.memory).toBe(9);
+    expect(res.body.duels).toEqual({ played: 0, won: 0, lost: 0, drawn: 0, peakRating: 1000 });
+    expect(res.body.password_hash).toBeUndefined();
+    expect(res.body.id).toBeUndefined();
+    expect((await request(app).get("/api/players/nobody_here")).status).toBe(404);
+  });
+});
+
 describe("account deletion", () => {
   it("needs the password, then removes the account and its token stops working", async () => {
     const app = setup();

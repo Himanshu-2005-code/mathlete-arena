@@ -8,6 +8,7 @@ import {
   SPRINT_SECONDS,
   type SessionRow,
   type Stats,
+  type PlayerProfile,
   ARCADE_GAMES,
   type ArcadeGame,
   type ArcadeResult,
@@ -340,6 +341,49 @@ export function createApp(db: Db) {
     for (const r of rows) out[r.game] = r.best;
     return out;
   }
+
+  // Public profile: rating, duel record, streak and bests. No history, no
+  // password-adjacent fields, nothing that isn't already on a leaderboard.
+  app.get("/api/players/:username", (req, res) => {
+    const user = findByName.get(String(req.params.username).slice(0, 40)) as (UserRow & { is_bot: number }) | undefined;
+    if (!user) return void res.status(404).json({ error: "No player with that name" });
+    const duel = db
+      .prepare(
+        `SELECT COUNT(*) AS played,
+                COALESCE(SUM(winner_id = @id), 0) AS won,
+                COALESCE(SUM(winner_id IS NOT NULL AND winner_id <> @id), 0) AS lost,
+                COALESCE(SUM(winner_id IS NULL), 0) AS drawn,
+                MAX(CASE WHEN p1_id = @id THEN rating_after1 ELSE rating_after2 END) AS peak
+         FROM duels WHERE p1_id = @id OR p2_id = @id`,
+      )
+      .get({ id: user.id }) as { played: number; won: number; lost: number; drawn: number; peak: number | null };
+    const counts = db
+      .prepare(
+        `SELECT COALESCE(SUM(kind = 'puzzle'), 0) AS puzzles, COALESCE(SUM(kind = 'practice'), 0) AS sprints,
+                MAX(CASE WHEN kind = 'practice' AND mode = 'mixed' AND duration_sec = 60 THEN score END) AS bestSprint
+         FROM sessions WHERE user_id = ?`,
+      )
+      .get(user.id) as { puzzles: number; sprints: number; bestSprint: number | null };
+    const profile: PlayerProfile = {
+      username: user.username,
+      rating: user.rating,
+      createdAt: user.created_at,
+      bot: !!user.is_bot,
+      duels: {
+        played: duel.played,
+        won: duel.won,
+        lost: duel.lost,
+        drawn: duel.drawn,
+        peakRating: Math.max(user.rating, duel.peak ?? 0),
+      },
+      puzzlesSolved: counts.puzzles,
+      sprints: counts.sprints,
+      bestSprint: counts.bestSprint,
+      dailyStreak: dailyStreak(db, user.id),
+      arcade: arcadeBests(user.id),
+    };
+    res.json(profile);
+  });
 
   const arcadeBody = z.object({ game: arcadeGame, score: z.number().int().min(0) });
 
