@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Leaderboard, LeaderboardKind } from "@matik/shared";
 import { Choices } from "@/components/Choices";
@@ -100,7 +101,9 @@ export default function LeaderboardPage() {
                   <tr key={`${r.username}-${i}`} className={user?.username === r.username ? "me" : undefined}>
                     <td className="r num">{r.rank}</td>
                     <td>
-                      {r.username}
+                      <Link href={`/player/${encodeURIComponent(r.username)}`} className="plain-link">
+                        {r.username}
+                      </Link>
                       {r.bot && <span className="tag">computer</span>}
                     </td>
                     <td className="r num">

@@ -185,7 +185,9 @@ export default function ProfilePage() {
                     {duels.recent.map((d) => (
                       <tr key={d.id}>
                         <td>{when(d.createdAt)}</td>
-                        <td>{d.opponent}</td>
+                        <td>
+                          <Link href={`/player/${encodeURIComponent(d.opponent)}`}>{d.opponent}</Link>
+                        </td>
                         <td className={`outcome ${d.outcome}`}>
                           {cap(d.outcome)}
                           {d.reason === "forfeit" && " (forfeit)"}

@@ -1421,3 +1421,13 @@ button.xcell.selected {
 .danger-zone p {
   margin: 0;
 }
+
+.plain-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.plain-link:hover,
+.plain-link:focus-visible {
+  text-decoration: underline;
+}
