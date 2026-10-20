@@ -82,7 +82,7 @@ export const api = {
     call<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   me: () => call<{ user: PublicUser }>("/api/me"),
   savePractice: (r: PracticeResultInput) =>
-    call<{ ok: true }>("/api/results/practice", { method: "POST", body: JSON.stringify(r) }),
+    call<{ ok: true; previousBest: number | null; newBest: boolean }>("/api/results/practice", { method: "POST", body: JSON.stringify(r) }),
   newPuzzle: (difficulty: Difficulty) => call<PublicPuzzle>(`/api/puzzles/crossmath?difficulty=${difficulty}`),
   savePuzzle: (r: PuzzleResultInput) =>
     call<{ ok: true }>("/api/results/puzzle", { method: "POST", body: JSON.stringify(r) }),

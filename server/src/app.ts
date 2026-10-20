@@ -201,12 +201,19 @@ export function createApp(db: Db) {
     if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
     const r = parsed.data;
     if (r.correct > r.attempts) return void res.status(400).json({ error: "correct cannot exceed attempts" });
+    const userId = (req as AuthedRequest).userId;
+    const prev = db
+      .prepare(
+        `SELECT MAX(score) AS best FROM sessions
+         WHERE user_id = ? AND kind = 'practice' AND mode = ? AND duration_sec = ?`,
+      )
+      .get(userId, r.mode, r.durationSec) as { best: number | null };
 
     db.prepare(
       `INSERT INTO sessions (user_id, kind, mode, duration_sec, adaptive, score, correct, attempts, max_level, avg_ms, duration_ms)
        VALUES (?, 'practice', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
-      (req as AuthedRequest).userId,
+      userId,
       r.mode,
       r.durationSec,
       r.adaptive ? 1 : 0,
@@ -217,7 +224,8 @@ export function createApp(db: Db) {
       r.avgMs,
       r.durationSec * 1000,
     );
-    res.status(201).json({ ok: true });
+    // previousBest is null on the first sprint of this mode and length.
+    res.status(201).json({ ok: true, previousBest: prev.best, newBest: prev.best === null || r.score > prev.best });
   });
 
   // Puzzles are regenerated from their seed, so a solution can't be faked.

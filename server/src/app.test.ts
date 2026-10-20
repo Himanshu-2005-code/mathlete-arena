@@ -84,6 +84,22 @@ describe("public player pages", () => {
   });
 });
 
+describe("practice personal bests", () => {
+  it("reports the previous best and whether this one beats it", async () => {
+    const app = setup();
+    const auth = { Authorization: `Bearer ${await register(app)}` };
+    const sprint = (score: number) => ({
+      mode: "mixed", adaptive: true, durationSec: 60, score, correct: 5, attempts: 6, maxLevel: 2, avgMs: 900,
+    });
+    const first = await request(app).post("/api/results/practice").set(auth).send(sprint(40));
+    expect(first.body).toMatchObject({ previousBest: null, newBest: true });
+    const lower = await request(app).post("/api/results/practice").set(auth).send(sprint(30));
+    expect(lower.body).toMatchObject({ previousBest: 40, newBest: false });
+    const higher = await request(app).post("/api/results/practice").set(auth).send(sprint(55));
+    expect(higher.body).toMatchObject({ previousBest: 40, newBest: true });
+  });
+});
+
 describe("account deletion", () => {
   it("needs the password, then removes the account and its token stops working", async () => {
     const app = setup();

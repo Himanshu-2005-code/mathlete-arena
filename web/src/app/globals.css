@@ -1431,3 +1431,7 @@ button.xcell.selected {
 .plain-link:focus-visible {
   text-decoration: underline;
 }
+
+.new-best {
+  color: var(--correct);
+}

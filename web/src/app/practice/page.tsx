@@ -46,6 +46,7 @@ export default function PracticePage() {
   const [tally, setTally] = useState<Tally>(emptyTally(1));
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
+  const [best, setBest] = useState<{ previous: number | null; isNew: boolean } | null>(null);
 
   // Every question shown this sprint, for the review afterwards.
   const [log, setLog] = useState<{ text: string; answer: number; ms: number; missed: boolean }[]>([]);
@@ -71,6 +72,7 @@ export default function PracticePage() {
     difficulty.current = new AdaptiveDifficulty(adaptive ? 1 : fixedLevel);
     setTally(emptyTally(adaptive ? 1 : fixedLevel));
     setLog([]);
+    setBest(null);
     setSaveState("idle");
     setSaveError("");
     endsAt.current = performance.now() + seconds * 1000;
@@ -151,7 +153,10 @@ export default function PracticePage() {
         maxLevel: tally.maxLevel,
         avgMs: tally.correct ? Math.round(tally.totalMs / tally.correct) : 0,
       })
-      .then(() => setSaveState("saved"))
+      .then((r) => {
+        setBest({ previous: r.previousBest, isNew: r.newBest });
+        setSaveState("saved");
+      })
       .catch((err: Error) => {
         setSaveState("error");
         setSaveError(err.message);
@@ -321,7 +326,16 @@ export default function PracticePage() {
       {user ? (
         <p className="notice" aria-live="polite">
           {saveState === "saving" && "Saving your score…"}
-          {saveState === "saved" && "Score saved to your profile."}
+          {saveState === "saved" &&
+            (best?.isNew && best.previous !== null && tally.score > 0 ? (
+              <strong className="new-best">
+                New personal best, up from {best.previous}. Saved to your profile.
+              </strong>
+            ) : best && best.previous !== null ? (
+              `Score saved. Your best at this setting is ${Math.max(best.previous, tally.score)}.`
+            ) : (
+              "Score saved to your profile."
+            ))}
           {saveState === "error" && <span className="error">Score not saved: {saveError}</span>}
         </p>
       ) : (
