@@ -58,6 +58,13 @@ export function NumberGridBoard(props: Props) {
   const [mistakes, setMistakes] = useState(0);
   const [solved, setSolved] = useState(false);
   const [hinted, setHinted] = useState<Set<string>>(() => new Set());
+  // Earlier grids, newest last, for Undo. Hints can't be undone.
+  const [history, setHistory] = useState<(number | null)[][][]>([]);
+  const undo = () => {
+    if (solved || !history.length) return;
+    setGrid(history[history.length - 1]);
+    setHistory((h) => h.slice(0, -1));
+  };
   const boardRef = useRef<HTMLDivElement>(null);
   const { elapsed, now } = useStopwatch(solved);
 
@@ -149,6 +156,7 @@ export function NumberGridBoard(props: Props) {
     const next = grid.map((row) => [...row]);
     next[r][c] = solution[r][c];
     setGrid(next);
+    setHistory([]);
     setHinted((h) => new Set(h).add(`${r},${c}`));
     setSel([r, c]);
     setMistakes((m) => m + 1);
@@ -168,8 +176,10 @@ export function NumberGridBoard(props: Props) {
       });
       return;
     }
+    if (grid[r][c] === value) return;
     const next = grid.map((row) => [...row]);
     next[r][c] = value;
+    setHistory((h) => [...h.slice(-99), grid]);
     setGrid(next);
     if (value === null) return;
     // A placement that clashes, or completes a wrong cage, counts as a mistake.
@@ -188,6 +198,11 @@ export function NumberGridBoard(props: Props) {
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const k = e.key;
+    if ((e.ctrlKey || e.metaKey) && (k === "z" || k === "Z")) {
+      undo();
+      e.preventDefault();
+      return;
+    }
     if (/^[1-9]$/.test(k) && Number(k) <= n) enter(Number(k));
     else if (k === "Backspace" || k === "Delete" || k === "0") enter(null);
     else if (k === "ArrowUp") move(-1, 0);
@@ -308,6 +323,9 @@ export function NumberGridBoard(props: Props) {
             <button type="button" className="tile erase" disabled={solved} onClick={() => enter(null)}>
               Erase
             </button>
+            <button type="button" className="tile erase" disabled={solved || !history.length} onClick={undo}>
+              Undo
+            </button>
             {solution && (
               <button type="button" className="tile erase" disabled={solved} onClick={hint}>
                 Hint
@@ -318,7 +336,7 @@ export function NumberGridBoard(props: Props) {
             <input type="checkbox" checked={noteMode} onChange={(e) => setNoteMode(e.target.checked)} /> Pencil notes
           </label>
           <p className="hint">
-            Type numbers or tap the pad. Arrow keys move, N toggles notes.
+            Type numbers or tap the pad. Arrow keys move, N toggles notes, Ctrl+Z undoes.
             {solution && " A hint fills in one cell and counts as a mistake."}
           </p>
         </div>
