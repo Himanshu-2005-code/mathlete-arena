@@ -1398,3 +1398,26 @@ button.xcell.selected {
   padding-top: 2px;
   padding-bottom: 2px;
 }
+
+.btn.danger:not(.ghost) {
+  background: var(--margin-red);
+  border-color: var(--margin-red);
+  color: #fff;
+}
+
+.btn.ghost.danger {
+  color: var(--margin-red);
+  border-color: var(--margin-red);
+}
+
+.danger-zone {
+  margin-top: 20px;
+  padding: 16px;
+  border: 2px dashed var(--margin-red);
+  border-radius: 6px;
+  max-width: 560px;
+}
+
+.danger-zone p {
+  margin: 0;
+}

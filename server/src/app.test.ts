@@ -68,6 +68,21 @@ describe("password change", () => {
   });
 });
 
+describe("account deletion", () => {
+  it("needs the password, then removes the account and its token stops working", async () => {
+    const app = setup();
+    const token = await register(app);
+    const auth = { Authorization: `Bearer ${token}` };
+    await request(app).post("/api/arcade").set(auth).send({ game: "memory", score: 7 });
+    expect((await request(app).post("/api/auth/delete").set(auth).send({ password: "nope" })).status).toBe(403);
+    expect((await request(app).post("/api/auth/delete").set(auth).send({ password: "secret123" })).status).toBe(200);
+    expect((await request(app).get("/api/me").set(auth)).status).toBe(401);
+    expect((await request(app).get("/api/leaderboard?kind=arcade-memory")).body.rows).toEqual([]);
+    const again = await request(app).post("/api/auth/register").send({ username: "himanshu", password: "secret123" });
+    expect(again.status).toBe(201);
+  });
+});
+
 describe("results and stats", () => {
   it("records practice sprints and verified puzzles", async () => {
     const app = setup();

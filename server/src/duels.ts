@@ -434,17 +434,21 @@ export class DuelManager {
     const [n1, n2] = eloUpdate(r1, r2, result1);
     const winnerId = result1 === 1 ? s1.player.id : result1 === 0 ? s2.player.id : null;
 
-    this.db.transaction(() => {
-      const setRating = this.db.prepare("UPDATE users SET rating = ? WHERE id = ?");
-      setRating.run(n1, s1.player.id);
-      setRating.run(n2, s2.player.id);
-      this.db
-        .prepare(
-          `INSERT INTO duels (p1_id, p2_id, seed, score1, score2, winner_id, change1, change2, rating_after1, rating_after2, reason)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .run(s1.player.id, s2.player.id, duel.seed, s1.score, s2.score, winnerId, n1 - r1, n2 - r2, n1, n2, reason);
-    })();
+    // If a player deleted their account mid-duel there's nothing to save for
+    // them; the duel still ends normally for whoever is left.
+    const bothExist = current.get(s1.player.id) && current.get(s2.player.id);
+    if (bothExist)
+      this.db.transaction(() => {
+        const setRating = this.db.prepare("UPDATE users SET rating = ? WHERE id = ?");
+        setRating.run(n1, s1.player.id);
+        setRating.run(n2, s2.player.id);
+        this.db
+          .prepare(
+            `INSERT INTO duels (p1_id, p2_id, seed, score1, score2, winner_id, change1, change2, rating_after1, rating_after2, reason)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          )
+          .run(s1.player.id, s2.player.id, duel.seed, s1.score, s2.score, winnerId, n1 - r1, n2 - r2, n1, n2, reason);
+      })();
 
     const outcome = (mine: 0 | 0.5 | 1): DuelOutcome => (mine === 1 ? "win" : mine === 0 ? "loss" : "draw");
     this.send(s1.player, "duel:end", {

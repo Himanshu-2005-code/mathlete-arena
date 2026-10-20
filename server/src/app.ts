@@ -174,6 +174,21 @@ export function createApp(db: Db) {
     res.json({ ok: true });
   });
 
+  // Deletes the account and everything recorded for it: sprints, puzzles,
+  // daily and arcade scores, and duels (which also leave the opponent's history).
+  const deleteUser = db.prepare<[number]>("DELETE FROM users WHERE id = ? AND is_bot = 0");
+  app.post("/api/auth/delete", requireAuth, async (req, res) => {
+    const parsed = z.object({ password: z.string().min(1).max(100) }).safeParse(req.body);
+    if (!parsed.success) return void res.status(400).json({ error: "Enter your password to confirm" });
+    const user = findById.get((req as AuthedRequest).userId);
+    if (!user) return void res.status(401).json({ error: "Account not found" });
+    if (!(await verifyPassword(parsed.data.password, user.password_hash))) {
+      return void res.status(403).json({ error: "That password is wrong" });
+    }
+    deleteUser.run(user.id);
+    res.json({ ok: true });
+  });
+
   app.get("/api/me", requireAuth, (req, res) => {
     const user = findById.get((req as AuthedRequest).userId);
     if (!user) return void res.status(401).json({ error: "Account not found" });

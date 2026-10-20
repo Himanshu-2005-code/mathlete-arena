@@ -72,6 +72,8 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   register: (username: string, password: string) =>
     call<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify({ username, password }) }),
+  deleteAccount: (password: string) =>
+    call<{ ok: true }>("/api/auth/delete", { method: "POST", body: JSON.stringify({ password }) }),
   changePassword: (current: string, next: string) =>
     call<{ ok: true }>("/api/auth/password", { method: "POST", body: JSON.stringify({ current, next }) }),
   login: (username: string, password: string) =>
