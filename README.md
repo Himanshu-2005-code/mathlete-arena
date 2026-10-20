@@ -18,6 +18,17 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 - **Live scoreboard**: both scores drawn as tally marks while you play.
 - **Sound and phones**: short synthesized blips for right and wrong answers (toggle in the top bar, remembered per browser), and a collapsible menu on narrow screens.
 
+**Players and polish**
+
+- **Player pages**: `/player/<name>` shows anyone's rating, duel record, daily streak and bests. Names on leaderboards and in recent duels link there.
+- **Profile**: a chart of your rating over your last 50 duels, plus changing your password and deleting your account (both need your current password).
+- **Leaderboards** show your own rank below the top 50 when you're further down, and refresh every 30 seconds while on screen.
+- **Practice**: after a sprint, a table of the questions you missed and your slowest answers, and a note when you beat your best for that mode and length. Esc or "Stop sprint" ends a sprint without saving.
+- **Puzzles**: Undo (button or Ctrl+Z) on the number grids, and on the Puzzles page a Hint that fills one correct cell and counts as a mistake. Daily puzzles have no hints.
+- **Daily**: a countdown to the next set, and a button that copies a short summary of your results to share.
+- **Theme**: light, dark or follow the device, remembered per browser, with no flash on load.
+- Friendly not-found and error pages, an app icon and web manifest, link previews, `robots.txt` and a sitemap.
+
 **Solo (phase 1)**
 
 - **Practice sprints**: 30, 60 or 120 seconds of addition, subtraction, multiplication, division or a mix. Each question advances the moment you type the right answer; Enter on a wrong one counts a miss.
@@ -81,6 +92,8 @@ npm start         # run the built app and the server
 | `TRUST_PROXY` | server | `1` in production (read client addresses from the host's proxy for rate limiting) |
 | `BOT_AFTER_SECONDS` | server | `10` (seconds in the queue before a computer opponent steps in; `0` turns bots off) |
 | `SERVE_WEB` | server | unset (set to `1` by `npm run start:prod` so one server serves the site too) |
+| `LOG_REQUESTS` | server | `1` in production (one log line per API call: method, path, status, time; no query strings or bodies) |
+| `SITE_URL` | web (build) | `http://localhost:3000` (public address used in the sitemap and `robots.txt`) |
 | `NEXT_PUBLIC_API_URL` | web | `http://localhost:4000` (empty in production builds, meaning same origin) |
 
 ## Deploying
@@ -155,8 +168,12 @@ web/src/
 | --- | --- | --- | --- |
 | POST | `/api/auth/register` | | Create account, returns token |
 | POST | `/api/auth/login` | | Sign in, returns token |
+| GET | `/api/health` | | Database check, uptime and version, for uptime monitors |
+| POST | `/api/auth/password` | yes | Change password (`current`, `next`) |
+| POST | `/api/auth/delete` | yes | Delete your account and its results (`password`) |
 | GET | `/api/me` | yes | Current user |
-| POST | `/api/results/practice` | yes | Save a finished sprint |
+| GET | `/api/players/:username` | | Public profile: rating, duel record, streak and bests |
+| POST | `/api/results/practice` | yes | Save a finished sprint; returns your previous best and whether this beats it |
 | GET | `/api/puzzles/crossmath?difficulty=` | | New puzzle without its solution |
 | POST | `/api/results/puzzle` | yes | Verify and save a solved puzzle (`kind`: crossmath, kenken, sudoku or maze; `grid` or `path`) |
 | GET | `/api/stats` | yes | Profile stats, including duel record |
@@ -164,7 +181,7 @@ web/src/
 | POST | `/api/daily/sprint` | yes | Submit today's sprint answers for replay and ranking |
 | POST | `/api/daily/puzzle` | yes | Submit a solution to one of today's puzzles (`kind`, then `grid` or `path`) |
 | POST | `/api/arcade` | yes | Save an arcade run (`game`: flash, memory, truefalse, compare or sign; `score`); returns your best and rank |
-| GET | `/api/leaderboard?kind=` | | Top 50: `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze`, `daily-hectoc`, `arcade-flash`, `arcade-memory`, `arcade-truefalse`, `arcade-compare`, `arcade-sign` |
+| GET | `/api/leaderboard?kind=` | optional | Top 50 (plus your own row as `me` if you're signed in and ranked lower): `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze`, `daily-hectoc`, `arcade-flash`, `arcade-memory`, `arcade-truefalse`, `arcade-compare`, `arcade-sign` |
 
 ### Socket events
 
