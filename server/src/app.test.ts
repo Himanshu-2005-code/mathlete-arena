@@ -13,6 +13,15 @@ async function register(app: ReturnType<typeof setup>, username = "himanshu") {
   return res.body.token as string;
 }
 
+describe("health", () => {
+  it("reports the database and version", async () => {
+    const res = await request(setup()).get("/api/health");
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true, db: "ok", version: "0.1.0" });
+    expect(typeof res.body.uptimeSec).toBe("number");
+  });
+});
+
 describe("auth", () => {
   it("registers, rejects duplicates, and logs in", async () => {
     const app = setup();

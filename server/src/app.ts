@@ -34,6 +34,7 @@ import { answerExpressions, answerGrid, answerPath, arcadeGame, puzzleKind } fro
 import rateLimit from "express-rate-limit";
 import { AUTH_RATE_LIMIT, TRUST_PROXY } from "./config";
 import type { Db } from "./db";
+import { APP_VERSION } from "./version";
 
 const credentials = z.object({
   username: z
@@ -108,8 +109,17 @@ export function createApp(db: Db) {
   const findById = db.prepare<[number], UserRow>("SELECT * FROM users WHERE id = ?");
   const insertUser = db.prepare<[string, string]>("INSERT INTO users (username, password_hash) VALUES (?, ?)");
 
+  // For uptime checks: confirms the database answers, and reports how long
+  // this process has been up.
+  const startedAt = Date.now();
+  const ping = db.prepare("SELECT 1 AS ok");
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true });
+    try {
+      ping.get();
+      res.json({ ok: true, db: "ok", uptimeSec: Math.round((Date.now() - startedAt) / 1000), version: APP_VERSION });
+    } catch {
+      res.status(503).json({ ok: false, db: "unreachable" });
+    }
   });
 
   app.post("/api/auth/register", async (req, res) => {
