@@ -119,8 +119,16 @@ export default function PracticePage() {
     nextQuestion();
   };
 
+  // Stop without saving: back to the settings.
+  const quit = () => setPhase("setup");
+
   // Enter with a wrong answer counts as a miss.
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      quit();
+      return;
+    }
     if (e.key !== "Enter" || !question || value === "") return;
     if (Number(value) === question.answer) return;
     if (adaptive) difficulty.current.record(false, performance.now() - shownAt.current);
@@ -261,7 +269,14 @@ export default function PracticePage() {
             />
           </div>
         )}
-        <p className="hint">Enter skips a wrong answer and counts it as a miss.</p>
+        <p className="hint">
+          Enter skips a wrong answer and counts it as a miss. Esc stops the sprint without saving.
+        </p>
+        <div className="actions">
+          <button type="button" className="btn ghost" onClick={quit}>
+            Stop sprint
+          </button>
+        </div>
       </section>
     );
   }
