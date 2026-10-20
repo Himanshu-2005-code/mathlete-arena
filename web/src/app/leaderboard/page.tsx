@@ -59,6 +59,25 @@ export default function LeaderboardPage() {
       .leaderboard(kind)
       .then(setBoard)
       .catch((e: Error) => setError(e.message));
+
+    // Keep it fresh while the page is on screen: every 30 seconds, and as soon
+    // as the tab comes back into view. Refreshes swap the table in place.
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      api
+        .leaderboard(kind)
+        .then((b) => {
+          setBoard(b);
+          setError("");
+        })
+        .catch(() => {});
+    };
+    const id = setInterval(refresh, 30_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [kind]);
 
   const cols = COLUMNS[kind];
