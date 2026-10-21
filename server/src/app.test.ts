@@ -22,6 +22,15 @@ describe("health", () => {
   });
 });
 
+describe("unknown API routes", () => {
+  it("answer with a JSON 404 and no caching", async () => {
+    const res = await request(setup()).get("/api/nope");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "No such API route" });
+    expect(res.headers["cache-control"]).toBe("no-store");
+  });
+});
+
 describe("auth", () => {
   it("registers, rejects duplicates, and logs in", async () => {
     const app = setup();

@@ -86,10 +86,12 @@ export function createApp(db: Db) {
   // Behind Render/Railway/Fly the client's address arrives in X-Forwarded-For.
   if (TRUST_PROXY) app.set("trust proxy", 1);
   app.disable("x-powered-by");
-  app.use((_req, res, next) => {
+  app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("X-Frame-Options", "DENY");
+    // Scores and leaderboards change constantly; never serve them from a cache.
+    if (req.path.startsWith("/api/")) res.setHeader("Cache-Control", "no-store");
     next();
   });
   // One compact line per API call: method, path, status, time. Query strings
@@ -418,6 +420,12 @@ export function createApp(db: Db) {
   });
 
   registerCompetitionRoutes(app, db);
+
+  // Anything else under /api is a JSON 404, so a typo in a client call doesn't
+  // fall through to the web app's HTML page.
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "No such API route" });
+  });
 
   return app;
 }
