@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { type Question, createRng, generateQuestion, randomSeed } from "@matik/shared";
 import { playCorrect } from "@/lib/sound";
+import { DailyStatus } from "@/components/DailyStatus";
 
 export default function Home() {
   const rng = useRef(createRng(randomSeed()));
@@ -73,6 +74,7 @@ export default function Home() {
             </>
           )}
         </p>
+        <DailyStatus />
         <div className="actions">
           <Link href="/duel" className="btn">
             Find a duel

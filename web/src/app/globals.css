@@ -1435,3 +1435,7 @@ button.xcell.selected {
 .new-best {
   color: var(--correct);
 }
+
+.daily-status {
+  margin-top: 8px;
+}
