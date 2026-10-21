@@ -16,6 +16,8 @@ import { PuzzlePlayer, type PuzzleSolved } from "@/components/PuzzlePlayer";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
+const CHOICE_KEY = "matik.puzzle";
+
 export default function PuzzlesPage() {
   const { user } = useAuth();
   const [kind, setKind] = useState<PuzzleKind>("crossmath");
@@ -26,15 +28,32 @@ export default function PuzzlesPage() {
 
   const newPuzzle = (k: PuzzleKind = kind, d: string = difficulty) => {
     setPuzzle(generatePublicPuzzle(k, randomSeed(), d));
+    try {
+      localStorage.setItem(CHOICE_KEY, JSON.stringify({ kind: k, difficulty: d }));
+    } catch {
+      /* ignore */
+    }
     setSolvedMs(null);
     setSaveMsg("");
   };
 
-  // Pick the game from a link like /puzzles?kind=kenken, then deal the first puzzle.
+  // Pick the game from a link like /puzzles?kind=kenken, else the last one
+  // played in this browser, then deal the first puzzle.
   useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get("kind") as PuzzleKind | null;
-    const start = k && PUZZLE_KINDS.some((x) => x.id === k) ? k : "crossmath";
-    const d = puzzleInfo(start).difficulties[0].id;
+    const isKind = (k: unknown): k is PuzzleKind => PUZZLE_KINDS.some((x) => x.id === k);
+    let saved: { kind?: unknown; difficulty?: unknown } = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(CHOICE_KEY) ?? "{}") ?? {};
+    } catch {
+      /* ignore */
+    }
+    const fromUrl = new URLSearchParams(window.location.search).get("kind");
+    const start: PuzzleKind = isKind(fromUrl) ? fromUrl : isKind(saved.kind) ? saved.kind : "crossmath";
+    const levels = puzzleInfo(start).difficulties;
+    const d =
+      !isKind(fromUrl) && saved.kind === start && levels.some((x) => x.id === saved.difficulty)
+        ? (saved.difficulty as string)
+        : levels[0].id;
     setKind(start);
     setDifficulty(d);
     newPuzzle(start, d);
