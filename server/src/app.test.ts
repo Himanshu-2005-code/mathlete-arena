@@ -109,6 +109,21 @@ describe("practice personal bests", () => {
   });
 });
 
+describe("data export", () => {
+  it("returns the player's own records and nothing secret", async () => {
+    const app = setup();
+    const auth = { Authorization: `Bearer ${await register(app)}` };
+    await request(app).post("/api/arcade").set(auth).send({ game: "memory", score: 6 });
+    const res = await request(app).get("/api/me/export").set(auth);
+    expect(res.status).toBe(200);
+    expect(res.headers["content-disposition"]).toContain("matik-himanshu.json");
+    expect(res.body.account.username).toBe("himanshu");
+    expect(res.body.arcade).toMatchObject([{ game: "memory", score: 6 }]);
+    expect(JSON.stringify(res.body)).not.toContain("password");
+    expect((await request(app).get("/api/me/export")).status).toBe(401);
+  });
+});
+
 describe("account deletion", () => {
   it("needs the password, then removes the account and its token stops working", async () => {
     const app = setup();

@@ -192,6 +192,41 @@ export function createApp(db: Db) {
     res.json({ ok: true });
   });
 
+  // Everything stored for the signed-in player, as one JSON file.
+  app.get("/api/me/export", requireAuth, (req, res) => {
+    const user = findById.get((req as AuthedRequest).userId);
+    if (!user) return void res.status(401).json({ error: "Account not found" });
+    const all = (sql: string) => db.prepare(sql).all(user.id);
+    const data = {
+      exportedAt: new Date().toISOString(),
+      account: toPublicUser(user),
+      sessions: all(
+        `SELECT kind, mode, duration_sec AS durationSec, adaptive, score, correct, attempts, max_level AS maxLevel,
+                avg_ms AS avgMs, duration_ms AS durationMs, created_at AS createdAt
+         FROM sessions WHERE user_id = ? ORDER BY created_at`,
+      ),
+      daily: all(
+        `SELECT day, kind, score, correct, time_ms AS timeMs, created_at AS createdAt
+         FROM daily_results WHERE user_id = ? ORDER BY day, kind`,
+      ),
+      arcade: all("SELECT game, score, created_at AS createdAt FROM arcade_results WHERE user_id = ? ORDER BY created_at"),
+      duels: db
+        .prepare(
+          `SELECT CASE WHEN d.p1_id = @id THEN u2.username ELSE u1.username END AS opponent,
+                  CASE WHEN d.p1_id = @id THEN d.score1 ELSE d.score2 END AS you,
+                  CASE WHEN d.p1_id = @id THEN d.score2 ELSE d.score1 END AS opponentScore,
+                  CASE WHEN d.winner_id IS NULL THEN 'draw' WHEN d.winner_id = @id THEN 'win' ELSE 'loss' END AS outcome,
+                  CASE WHEN d.p1_id = @id THEN d.rating_after1 ELSE d.rating_after2 END AS ratingAfter,
+                  d.reason, d.created_at AS createdAt
+           FROM duels d JOIN users u1 ON u1.id = d.p1_id JOIN users u2 ON u2.id = d.p2_id
+           WHERE d.p1_id = @id OR d.p2_id = @id ORDER BY d.created_at`,
+        )
+        .all({ id: user.id }),
+    };
+    res.setHeader("Content-Disposition", `attachment; filename="matik-${user.username}.json"`);
+    res.json(data);
+  });
+
   app.get("/api/me", requireAuth, (req, res) => {
     const user = findById.get((req as AuthedRequest).userId);
     if (!user) return void res.status(401).json({ error: "Account not found" });

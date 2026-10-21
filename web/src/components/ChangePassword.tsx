@@ -94,6 +94,7 @@ export function ChangePassword() {
           </div>
         </form>
       )}
+      <ExportData />
       <DeleteAccount />
     </div>
   );
@@ -162,5 +163,33 @@ function DeleteAccount() {
         </button>
       </div>
     </form>
+  );
+}
+
+function ExportData() {
+  const { user } = useAuth();
+  const [state, setState] = useState<"" | "busy" | "error">("");
+  const download = async () => {
+    setState("busy");
+    try {
+      const data = await api.exportData();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `matik-${user?.username ?? "data"}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setState("");
+    } catch {
+      setState("error");
+    }
+  };
+  return (
+    <div className="actions">
+      <button type="button" className="btn ghost" onClick={download} disabled={state === "busy"}>
+        Download my data
+      </button>
+      {state === "error" && <span className="error">Couldn't prepare the download.</span>}
+    </div>
   );
 }

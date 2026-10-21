@@ -74,6 +74,7 @@ export const api = {
   register: (username: string, password: string) =>
     call<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify({ username, password }) }),
   player: (username: string) => call<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`),
+  exportData: () => call<unknown>("/api/me/export"),
   deleteAccount: (password: string) =>
     call<{ ok: true }>("/api/auth/delete", { method: "POST", body: JSON.stringify({ password }) }),
   changePassword: (current: string, next: string) =>
