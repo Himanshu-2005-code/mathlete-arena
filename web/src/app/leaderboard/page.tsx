@@ -80,6 +80,15 @@ export default function LeaderboardPage() {
     };
   }, [kind]);
 
+  // Keep the address in step with the tab, so a copied link opens the same board.
+  const pickBoard = (k: LeaderboardKind) => {
+    setKind(k);
+    const url = new URL(window.location.href);
+    if (k === "rating") url.searchParams.delete("kind");
+    else url.searchParams.set("kind", k);
+    window.history.replaceState(null, "", url);
+  };
+
   const cols = COLUMNS[kind];
 
   return (
@@ -93,7 +102,7 @@ export default function LeaderboardPage() {
             : `Today's best first attempts${board?.day ? ` (${board.day})` : ""}. Days reset at midnight.`}
       </p>
 
-      <Choices legend="Board" name="board" value={kind} onChange={setKind} options={KINDS} />
+      <Choices legend="Board" name="board" value={kind} onChange={pickBoard} options={KINDS} />
 
       {error && <p className="error">{error}</p>}
       {!board && !error && <p className="notice">Loading…</p>}
