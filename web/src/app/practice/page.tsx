@@ -31,6 +31,8 @@ interface Tally {
 
 const emptyTally = (level: number): Tally => ({ score: 0, correct: 0, attempts: 0, maxLevel: level, totalMs: 0 });
 
+const SETTINGS_KEY = "matik.practice";
+
 export default function PracticePage() {
   const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("setup");
@@ -38,6 +40,33 @@ export default function PracticePage() {
   const [seconds, setSeconds] = useState<SprintSeconds>(60);
   const [adaptive, setAdaptive] = useState(true);
   const [fixedLevel, setFixedLevel] = useState(3);
+
+  // Remember the last settings in this browser. Read after mount so the
+  // server render matches; anything unexpected falls back to the defaults.
+  const loaded = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null");
+      if (saved && typeof saved === "object") {
+        if (PRACTICE_MODES.some((m) => m.id === saved.mode)) setMode(saved.mode);
+        if ((SPRINT_SECONDS as readonly number[]).includes(saved.seconds)) setSeconds(saved.seconds);
+        if (typeof saved.adaptive === "boolean") setAdaptive(saved.adaptive);
+        if (Number.isInteger(saved.fixedLevel) && saved.fixedLevel >= 1 && saved.fixedLevel <= 10)
+          setFixedLevel(saved.fixedLevel);
+      }
+    } catch {
+      /* ignore */
+    }
+    loaded.current = true;
+  }, []);
+  useEffect(() => {
+    if (!loaded.current) return;
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ mode, seconds, adaptive, fixedLevel }));
+    } catch {
+      /* ignore */
+    }
+  }, [mode, seconds, adaptive, fixedLevel]);
 
   const [question, setQuestion] = useState<Question | null>(null);
   const [value, setValue] = useState("");
