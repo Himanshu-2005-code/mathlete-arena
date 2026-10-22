@@ -39,9 +39,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AuthProvider>
+          <a href="#main" className="skip-link">
+            Skip to content
+          </a>
           <div className="shell">
             <TopBar />
-            <main>{children}</main>
+            <main id="main" tabIndex={-1}>
+              {children}
+            </main>
           </div>
         </AuthProvider>
       </body>

@@ -1439,3 +1439,25 @@ button.xcell.selected {
 .daily-status {
   margin-top: 8px;
 }
+
+/* Hidden until a keyboard user tabs to it, then pinned to the top left. */
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 8px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+main:focus {
+  outline: none;
+}
