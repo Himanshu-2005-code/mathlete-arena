@@ -297,6 +297,13 @@ export default function DuelPage() {
           {rematch.kind === "waiting" && <p className="notice">Waiting for {phase.opponentName} to accept…</p>}
           {rematchMsg && <p className="notice">{rematchMsg}</p>}
         </div>
+        {phase.opponentName !== "your opponent" && (
+          <p>
+            <Link href={`/player/${encodeURIComponent(phase.opponentName)}`}>
+              See {phase.opponentName}&apos;s record
+            </Link>
+          </p>
+        )}
         <div className="actions">
           {rematch.kind === "waiting" ? (
             <button type="button" className="btn ghost" onClick={() => {
