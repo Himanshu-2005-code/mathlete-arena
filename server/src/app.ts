@@ -1,3 +1,4 @@
+import compression from "compression";
 import cors from "cors";
 import express from "express";
 import { z } from "zod";
@@ -86,6 +87,9 @@ export function createApp(db: Db) {
   // Behind Render/Railway/Fly the client's address arrives in X-Forwarded-For.
   if (TRUST_PROXY) app.set("trust proxy", 1);
   app.disable("x-powered-by");
+  // Gzip pages and API replies. Socket.io's long-lived connections don't pass
+  // through Express routes, so live duels are unaffected.
+  app.use(compression());
   app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");

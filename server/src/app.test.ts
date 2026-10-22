@@ -31,6 +31,14 @@ describe("unknown API routes", () => {
   });
 });
 
+describe("compression", () => {
+  it("gzips large replies when the client accepts it", async () => {
+    const res = await request(setup()).get("/api/daily").set("Accept-Encoding", "gzip");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-encoding"]).toBe("gzip");
+  });
+});
+
 describe("auth", () => {
   it("registers, rejects duplicates, and logs in", async () => {
     const app = setup();
