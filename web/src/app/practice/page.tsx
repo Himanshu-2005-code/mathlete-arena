@@ -19,7 +19,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { playCorrect, playWrong } from "@/lib/sound";
 
-type Phase = "setup" | "playing" | "done";
+type Phase = "setup" | "countdown" | "playing" | "done";
 
 interface Tally {
   score: number;
@@ -104,11 +104,24 @@ export default function PracticePage() {
     setBest(null);
     setSaveState("idle");
     setSaveError("");
-    endsAt.current = performance.now() + seconds * 1000;
-    setRemainingMs(seconds * 1000);
-    setPhase("playing");
-    nextQuestion();
+    setCount(3);
+    setPhase("countdown");
   };
+
+  // 3, 2, 1, then the clock starts with the first question.
+  const [count, setCount] = useState(3);
+  useEffect(() => {
+    if (phase !== "countdown") return;
+    if (count === 0) {
+      endsAt.current = performance.now() + seconds * 1000;
+      setRemainingMs(seconds * 1000);
+      setPhase("playing");
+      nextQuestion();
+      return;
+    }
+    const id = setTimeout(() => setCount((c) => c - 1), 700);
+    return () => clearTimeout(id);
+  }, [phase, count, seconds, nextQuestion]);
 
   // Countdown.
   useEffect(() => {
@@ -258,6 +271,21 @@ export default function PracticePage() {
             <Link href="/auth">Sign in</Link> to keep your scores.
           </p>
         )}
+      </section>
+    );
+  }
+
+  if (phase === "countdown") {
+    return (
+      <section className="results" aria-label="Sprint about to start">
+        <p className="hero-q play-q countdown-big" aria-live="assertive">
+          <span className="num">{count}</span>
+        </p>
+        <div className="actions">
+          <button type="button" className="btn ghost" onClick={() => setPhase("setup")}>
+            Cancel
+          </button>
+        </div>
       </section>
     );
   }

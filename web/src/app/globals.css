@@ -1461,3 +1461,8 @@ button.xcell.selected {
 main:focus {
   outline: none;
 }
+
+.countdown-big {
+  justify-content: center;
+  font-size: clamp(4rem, 18vw, 8rem);
+}
