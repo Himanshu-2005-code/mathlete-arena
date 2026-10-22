@@ -79,6 +79,8 @@ export interface Stats {
     recent: DuelRow[];
   };
   recent: SessionRow[];
+  /** Daily results from the last 14 days, newest first. */
+  dailyRecent: { day: string; kind: string; score: number; timeMs: number }[];
 }
 
 export interface DuelRow {

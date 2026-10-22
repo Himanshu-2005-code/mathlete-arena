@@ -352,6 +352,9 @@ describe("new puzzle games", () => {
     expect(board.rows).toEqual([{ rank: 1, username: "dailyp", value: 42_000, detail: null }]);
     expect((await request(app).get("/api/leaderboard?kind=daily-kenken")).body.rows).toEqual([]);
     expect((await request(app).get("/api/daily").set(auth)).body.extra.maze.mine.timeMs).toBe(42_000);
+    expect((await request(app).get("/api/stats").set(auth)).body.dailyRecent).toMatchObject([
+      { day: today(), kind: "maze", timeMs: 42_000 },
+    ]);
   });
 
   it("migrates an old daily table so the new kinds can be saved", async () => {

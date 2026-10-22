@@ -378,6 +378,12 @@ export function createApp(db: Db) {
         recent: duelRows.slice(0, 10).map(({ ratingAfter: _, ...d }) => d),
       },
       recent,
+      dailyRecent: db
+        .prepare(
+          `SELECT day, kind, score, time_ms AS timeMs FROM daily_results
+           WHERE user_id = ? AND day >= date('now', '-14 days') ORDER BY day DESC, created_at DESC`,
+        )
+        .all(userId) as Stats["dailyRecent"],
     };
     res.json(stats);
   });

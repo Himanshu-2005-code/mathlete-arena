@@ -253,6 +253,38 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {stats.dailyRecent.length > 0 && (
+            <div className="section">
+              <h2>Recent daily results</h2>
+              <table className="ledger">
+                <thead>
+                  <tr>
+                    <th>Day</th>
+                    <th>Game</th>
+                    <th className="r">Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.dailyRecent.map((d) => (
+                    <tr key={`${d.day}-${d.kind}`}>
+                      <td>
+                        {new Date(`${d.day}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+                      </td>
+                      <td>
+                        {d.kind === "sprint"
+                          ? "Sprint"
+                          : d.kind === "puzzle"
+                            ? "Cross-math"
+                            : (PUZZLE_KINDS.find((k) => k.id === d.kind)?.label ?? d.kind)}
+                      </td>
+                      <td className="r num">{d.kind === "sprint" ? `${d.score} pts` : formatMs(d.timeMs)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {recent.length > 0 && (
             <div className="section">
               <h2>Recent sprints and puzzles</h2>
