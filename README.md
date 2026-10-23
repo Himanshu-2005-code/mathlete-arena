@@ -20,6 +20,8 @@ A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and
 
 **Players and polish**
 
+- **Achievements**: 15 to earn (first win, 100-point sprint, 7-day streak, 10 digits remembered and more), shown on the profile. They're worked out from your stats, so games played before they existed count too.
+- **Weekly leaderboard**: daily sprint points added up from Monday to today (India time), next to the daily boards.
 - **Player pages**: `/player/<name>` shows anyone's rating, duel record, daily streak and bests. Names on leaderboards and in recent duels link there.
 - **Profile**: a chart of your rating over your last 50 duels, plus changing your password and deleting your account (both need your current password).
 - **Leaderboards** show your own rank below the top 50 when you're further down, and refresh every 30 seconds while on screen.
@@ -170,6 +172,7 @@ web/src/
 | POST | `/api/auth/login` | | Sign in, returns token |
 | GET | `/api/health` | | Database check, uptime and version, for uptime monitors |
 | POST | `/api/auth/password` | yes | Change password (`current`, `next`) |
+| GET | `/api/me/export` | yes | Download everything stored for your account as JSON |
 | POST | `/api/auth/delete` | yes | Delete your account and its results (`password`) |
 | GET | `/api/me` | yes | Current user |
 | GET | `/api/players/:username` | | Public profile: rating, duel record, streak and bests |
@@ -181,7 +184,7 @@ web/src/
 | POST | `/api/daily/sprint` | yes | Submit today's sprint answers for replay and ranking |
 | POST | `/api/daily/puzzle` | yes | Submit a solution to one of today's puzzles (`kind`, then `grid` or `path`) |
 | POST | `/api/arcade` | yes | Save an arcade run (`game`: flash, memory, truefalse, compare or sign; `score`); returns your best and rank |
-| GET | `/api/leaderboard?kind=` | optional | Top 50 (plus your own row as `me` if you're signed in and ranked lower): `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze`, `daily-hectoc`, `arcade-flash`, `arcade-memory`, `arcade-truefalse`, `arcade-compare`, `arcade-sign` |
+| GET | `/api/leaderboard?kind=` | optional | Top 50 (plus your own row as `me` if you're signed in and ranked lower): `rating`, `daily-sprint`, `daily-puzzle` (cross-math), `daily-kenken`, `daily-sudoku`, `daily-maze`, `daily-hectoc`, `weekly-sprint`, `arcade-flash`, `arcade-memory`, `arcade-truefalse`, `arcade-compare`, `arcade-sign` |
 
 ### Socket events
 
@@ -194,9 +197,8 @@ Sockets authenticate with the same JWT as the REST API (`auth: { token }`).
 ## Roadmap
 
 - Spectating live duels
-- Seasonal ratings and weekly leaderboards
+- Seasonal ratings
 - Hard versions of the daily KenKen, Sudoku and maze
-- Achievements
 - Mobile app (React Native) reusing `shared/`
 
 ## Limits
