@@ -113,3 +113,28 @@ describe("nextDayStart", () => {
     expect(nextDayStart(new Date("2026-10-18T00:00:00Z"), 0).toISOString()).toBe("2026-10-19T00:00:00.000Z");
   });
 });
+
+describe("achievements", () => {
+  it("are earned from stats alone", async () => {
+    const { achievements } = await import("./achievements");
+    const base = {
+      practice: { sessions: 0, totalCorrect: 0, totalAttempts: 0, accuracy: 0, bestByMode: [] },
+      puzzles: { solved: 0, fastestByDifficulty: [] },
+      duels: { played: 0, won: 0, lost: 0, drawn: 0, peakRating: 1000, ratingHistory: [], recent: [] },
+      dailyStreak: { current: 0, best: 0 },
+      arcade: { flash: 0, memory: 0, truefalse: 0, compare: 0, sign: 0 },
+      recent: [],
+      dailyRecent: [],
+    } as unknown as import("./types").Stats;
+    expect(achievements(base).filter((a) => a.earned)).toEqual([]);
+    const earned = achievements({
+      ...base,
+      practice: { ...base.practice, sessions: 2, bestByMode: [{ mode: "mixed", durationSec: 60, best: 120 }] },
+      dailyStreak: { current: 1, best: 7 },
+      arcade: { ...base.arcade, sign: 31 },
+    })
+      .filter((a) => a.earned)
+      .map((a) => a.id);
+    expect(earned).toEqual(["first-sprint", "sprint-100", "streak-3", "streak-7", "blitz-30"]);
+  });
+});

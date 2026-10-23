@@ -16,3 +16,4 @@ export * from "./gridsolver";
 export * from "./killer";
 export * from "./futoshiki";
 export * from "./blitz";
+export * from "./achievements";
