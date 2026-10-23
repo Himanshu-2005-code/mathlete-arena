@@ -1466,3 +1466,33 @@ main:focus {
   justify-content: center;
   font-size: clamp(4rem, 18vw, 8rem);
 }
+
+.badges {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 2px dashed var(--grid);
+  border-radius: 6px;
+  color: var(--pencil);
+  background: var(--surface);
+  font-size: 0.95rem;
+}
+
+.badge.earned {
+  border: 2px solid var(--ink);
+  color: var(--ink);
+}
+
+.badge.earned strong {
+  color: var(--correct);
+}

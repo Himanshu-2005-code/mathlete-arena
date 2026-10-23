@@ -6,6 +6,7 @@ import { ARCADE_GAMES, PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@matik/s
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ChangePassword } from "@/components/ChangePassword";
+import { Achievements } from "@/components/Achievements";
 import { RatingChart } from "@/components/RatingChart";
 
 const modeLabel = (id: string) => PRACTICE_MODES.find((m) => m.id === id)?.label ?? id;
@@ -312,6 +313,7 @@ export default function ProfilePage() {
           )}
         </>
       )}
+      <Achievements stats={stats} />
       <ChangePassword />
     </section>
   );
