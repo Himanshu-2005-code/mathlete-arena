@@ -148,6 +148,7 @@ export type LeaderboardKind =
   | "daily-sudoku"
   | "daily-maze"
   | "daily-hectoc"
+  | "weekly-sprint"
   | "arcade-flash"
   | "arcade-memory"
   | "arcade-truefalse"
@@ -162,6 +163,7 @@ export const LEADERBOARD_KINDS: LeaderboardKind[] = [
   "daily-sudoku",
   "daily-maze",
   "daily-hectoc",
+  "weekly-sprint",
   "arcade-flash",
   "arcade-memory",
   "arcade-truefalse",

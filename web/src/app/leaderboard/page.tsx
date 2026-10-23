@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 const KINDS: { value: LeaderboardKind; label: string }[] = [
   { value: "rating", label: "Duel rating" },
   { value: "daily-sprint", label: "Sprint" },
+  { value: "weekly-sprint", label: "Sprint this week" },
   { value: "daily-puzzle", label: "Cross-math" },
   { value: "daily-kenken", label: "KenKen" },
   { value: "daily-sudoku", label: "Sudoku" },
@@ -28,6 +29,7 @@ const solveBoard = (game: string) => ({ value: "Time", detail: null, empty: `Nob
 const COLUMNS: Record<LeaderboardKind, { value: string; detail: string | null; empty: string }> = {
   rating: { value: "Rating", detail: "Duels", empty: "No duels played yet. Win one and you're on the board." },
   "daily-sprint": { value: "Points", detail: "Answers", empty: "Nobody has played today's sprint yet." },
+  "weekly-sprint": { value: "Points", detail: "Days", empty: "Nobody has played a daily sprint this week yet." },
   "daily-puzzle": solveBoard("cross-math"),
   "daily-kenken": solveBoard("KenKen"),
   "daily-sudoku": solveBoard("Sudoku"),
@@ -99,6 +101,8 @@ export default function LeaderboardPage() {
           ? "Everyone who has played a duel, by rating."
           : kind.startsWith("arcade-")
             ? "Everyone's best run, all time."
+            : kind === "weekly-sprint"
+              ? `Daily sprint points added up since Monday${board?.day ? ` (${board.day})` : ""}. Play every day to climb.`
             : `Today's best first attempts${board?.day ? ` (${board.day})` : ""}. Days reset at midnight.`}
       </p>
 
@@ -135,7 +139,7 @@ export default function LeaderboardPage() {
                       {r.bot && <span className="tag">computer</span>}
                     </td>
                     <td className="r num">
-                      {kind === "rating" || kind === "daily-sprint" || kind.startsWith("arcade-")
+                      {kind === "rating" || kind.endsWith("-sprint") || kind.startsWith("arcade-")
                         ? r.value
                         : formatTime(r.value)}
                     </td>

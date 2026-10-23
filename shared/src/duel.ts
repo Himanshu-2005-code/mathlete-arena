@@ -43,6 +43,13 @@ export function nextDayStart(date: Date, offsetMinutes: number): Date {
   return new Date(start + 86_400_000);
 }
 
+/** The Monday on or before a day key like "2026-10-23" (also a day key). */
+export function weekStart(day: string): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  const sinceMonday = (d.getUTCDay() + 6) % 7;
+  return new Date(d.getTime() - sinceMonday * 86_400_000).toISOString().slice(0, 10);
+}
+
 /** Stable seed for a day and purpose, so everyone gets the same challenge. */
 export function dailySeed(day: string, purpose: "sprint" | "puzzle"): number {
   let h = 2166136261;

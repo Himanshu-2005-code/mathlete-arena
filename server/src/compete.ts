@@ -18,6 +18,7 @@ import {
   computeStreak,
   dailySeed,
   nextDayStart,
+  weekStart,
   dayKey,
   generateCrossMath,
   pointsFor,
@@ -228,6 +229,17 @@ export function registerCompetitionRoutes(app: Express, db: Db) {
            GROUP BY a.user_id ORDER BY value DESC, MIN(a.created_at) ASC`,
         )
         .all(kind.slice("arcade-".length)) as Ranked[];
+    } else if (kind === "weekly-sprint") {
+      // Daily sprint points added up from Monday to today; `day` is the Monday.
+      day = weekStart(today());
+      ranked = db
+        .prepare(
+          `SELECT u.id AS uid, u.username, SUM(r.score) AS value, COUNT(*) AS detail
+           FROM daily_results r JOIN users u ON u.id = r.user_id
+           WHERE r.kind = 'sprint' AND r.day >= ? AND r.day <= ?
+           GROUP BY r.user_id ORDER BY value DESC, MIN(r.created_at) ASC`,
+        )
+        .all(day, today()) as Ranked[];
     } else {
       day = today();
       const sprint = kind === "daily-sprint";

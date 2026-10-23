@@ -180,6 +180,12 @@ describe("daily challenge", () => {
 
     const board = (await request(app).get("/api/leaderboard?kind=daily-sprint")).body;
     expect(board.rows.map((r: { username: string }) => r.username)).toEqual(["daytwo", "dayone"]);
+    const week = (await request(app).get("/api/leaderboard?kind=weekly-sprint")).body;
+    expect(week.rows.map((r: { username: string; detail: number }) => [r.username, r.detail])).toEqual([
+      ["daytwo", 1],
+      ["dayone", 1],
+    ]);
+    expect(week.rows[0].value).toBe(board.rows[0].value);
 
     const info = (await request(app).get("/api/daily").set("Authorization", `Bearer ${t1}`)).body;
     expect(info.mine.sprint.correct).toBe(5);

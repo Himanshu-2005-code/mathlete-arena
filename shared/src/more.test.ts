@@ -138,3 +138,13 @@ describe("achievements", () => {
     expect(earned).toEqual(["first-sprint", "sprint-100", "streak-3", "streak-7", "blitz-30"]);
   });
 });
+
+describe("weekStart", () => {
+  it("finds the Monday of the week", async () => {
+    const { weekStart } = await import("./duel");
+    expect(weekStart("2026-10-23")).toBe("2026-10-19"); // Friday
+    expect(weekStart("2026-10-19")).toBe("2026-10-19"); // Monday
+    expect(weekStart("2026-10-25")).toBe("2026-10-19"); // Sunday
+    expect(weekStart("2026-11-01")).toBe("2026-10-26");
+  });
+});
