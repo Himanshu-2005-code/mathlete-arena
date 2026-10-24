@@ -479,3 +479,87 @@
   background: rgba(57, 230, 122, 0.1);
   color: var(--accent);
 }
+
+/* ---------- Section headings, labels and messages ---------- */
+
+/* A short hazard-stripe bar marks each section. */
+:root:not([data-theme]) .section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+:root:not([data-theme]) .section > h2::before {
+  content: "";
+  flex: none;
+  width: 28px;
+  height: 8px;
+  background-image: repeating-linear-gradient(-45deg, var(--accent) 0 4px, transparent 4px 8px);
+  opacity: 0.8;
+}
+
+:root:not([data-theme]) .field-group legend,
+:root:not([data-theme]) .field label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pencil);
+}
+
+:root:not([data-theme]) .notice {
+  padding: 8px 12px;
+  border-left: 2px solid var(--accent);
+  background: rgba(57, 230, 122, 0.06);
+  color: var(--ink-soft);
+  max-width: 64ch;
+}
+
+:root:not([data-theme]) .error {
+  padding: 8px 12px;
+  border-left: 2px solid var(--margin-red);
+  background: rgba(255, 77, 61, 0.08);
+  font-weight: 600;
+  max-width: 64ch;
+}
+
+/* An error inside a notice line stays inline. */
+:root:not([data-theme]) .notice .error {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+:root:not([data-theme]) .hint {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--pencil);
+}
+
+:root:not([data-theme]) .streak .num,
+:root:not([data-theme]) .countdown .num {
+  color: var(--accent);
+  text-shadow: 0 0 14px rgba(57, 230, 122, 0.45);
+}
+
+:root:not([data-theme]) .countdown {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+:root:not([data-theme]) .countdown .num {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+:root:not([data-theme]) .new-best,
+:root:not([data-theme]) .done-mark {
+  color: var(--correct);
+  text-shadow: 0 0 14px rgba(125, 255, 106, 0.45);
+}
