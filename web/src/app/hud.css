@@ -241,3 +241,120 @@
     transform: translateX(120%) skewX(-20deg);
   }
 }
+
+/* ---------- Top bar ----------
+   A frosted HUD strip that stays put, a glowing wordmark with a live "online"
+   ping, and monospace nav labels with a signal-green marker on the current page. */
+
+:root:not([data-theme]) .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  align-items: center;
+  margin: 0 calc(var(--gutter) * -1);
+  padding: 14px var(--gutter);
+  background: rgba(7, 9, 10, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--grid);
+}
+
+:root:not([data-theme]) .wordmark {
+  position: relative;
+  font-size: 2.1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding-right: 16px;
+  background: linear-gradient(95deg, #bdf8d4 0%, var(--accent) 45%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(57, 230, 122, 0.35));
+}
+
+/* The radar-green "online" ping beside the wordmark. */
+:root:not([data-theme]) .wordmark::before,
+:root:not([data-theme]) .wordmark::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--correct);
+}
+
+:root:not([data-theme]) .wordmark::after {
+  animation: hud-ping 1.8s ease-out infinite;
+}
+
+:root:not([data-theme]) .topbar nav {
+  gap: 22px;
+}
+
+:root:not([data-theme]) .topbar nav a {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pencil);
+  padding: 4px 0;
+  border-bottom-width: 1px;
+  transition: color 150ms ease;
+}
+
+:root:not([data-theme]) .topbar nav a:hover {
+  color: var(--ink);
+  border-bottom-color: transparent;
+}
+
+:root:not([data-theme]) .topbar nav a[aria-current="page"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  text-shadow: 0 0 14px rgba(57, 230, 122, 0.5);
+}
+
+:root:not([data-theme]) .topbar .who {
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+:root:not([data-theme]) .who-name .num {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+:root:not([data-theme]) .menu-toggle {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border: 1px solid var(--grid-strong);
+  background: transparent;
+  padding: 6px 12px;
+}
+
+@media (max-width: 640px) {
+  :root:not([data-theme]) .topbar.open nav a {
+    font-size: 0.85rem;
+    padding: 10px 0;
+  }
+}
+
+@keyframes hud-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
