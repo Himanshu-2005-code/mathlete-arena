@@ -153,3 +153,91 @@
 :root:not([data-theme]) .entry {
   border-bottom-color: var(--grid);
 }
+
+/* ---------- Buttons ----------
+   Signal-green primary with a sheen that sweeps across on hover; outlined
+   secondary; red for danger. */
+
+:root:not([data-theme]) .btn {
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 12px 22px 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #04130a;
+  transition: box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+:root:not([data-theme]) .btn:hover:not(:disabled) {
+  background: #5cf092;
+  border-color: #5cf092;
+  box-shadow: var(--glow);
+}
+
+:root:not([data-theme]) .btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%) skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  pointer-events: none;
+}
+
+:root:not([data-theme]) .btn:hover:not(:disabled)::after {
+  animation: hud-sheen 700ms ease-out;
+}
+
+:root:not([data-theme]) .btn.ghost {
+  background: transparent;
+  border-color: var(--grid-strong);
+  color: var(--ink);
+}
+
+:root:not([data-theme]) .btn.ghost:hover:not(:disabled) {
+  background: rgba(57, 230, 122, 0.08);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+:root:not([data-theme]) .btn.ghost::after {
+  background: linear-gradient(90deg, transparent, rgba(57, 230, 122, 0.25), transparent);
+}
+
+:root:not([data-theme]) .btn.danger:not(.ghost) {
+  background: var(--margin-red);
+  border-color: var(--margin-red);
+  color: #fff;
+}
+
+:root:not([data-theme]) .btn.ghost.danger {
+  color: var(--margin-red);
+  border-color: rgba(255, 77, 61, 0.5);
+}
+
+:root:not([data-theme]) .btn.ghost.danger:hover:not(:disabled) {
+  background: rgba(255, 77, 61, 0.1);
+  border-color: var(--margin-red);
+  color: var(--margin-red);
+}
+
+:root:not([data-theme]) .linkish,
+:root:not([data-theme]) a {
+  text-underline-offset: 3px;
+}
+
+:root:not([data-theme]) main a:not(.btn):not(.plain-link):hover {
+  color: var(--accent);
+}
+
+@keyframes hud-sheen {
+  to {
+    transform: translateX(120%) skewX(-20deg);
+  }
+}
