@@ -683,3 +683,78 @@
     opacity: 0.55;
   }
 }
+
+/* ---------- Motion and texture ---------- */
+
+/* A faint CRT scanline overlay over the whole page. */
+:root:not([data-theme]) body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0px,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Lists of panels and cards rise in one after another. */
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > * {
+  animation: hud-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > :nth-child(1) { animation-delay: 40ms; }
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > :nth-child(2) { animation-delay: 110ms; }
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > :nth-child(3) { animation-delay: 180ms; }
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > :nth-child(4) { animation-delay: 250ms; }
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > :nth-child(5) { animation-delay: 320ms; }
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > :nth-child(6) { animation-delay: 390ms; }
+:root:not([data-theme]) :is(.entries, .result-figures, .badges) > :nth-child(n + 7) { animation-delay: 450ms; }
+
+:root:not([data-theme]) main > section > h1,
+:root:not([data-theme]) .hero {
+  animation: hud-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* The first call to action on a page pulses gently. */
+:root:not([data-theme]) .hero .actions .btn:first-child,
+:root:not([data-theme]) .results > .actions .btn:not(.ghost):first-child {
+  animation: hud-glow 2.6s ease-in-out infinite;
+}
+
+:root:not([data-theme]) .play-q.shake {
+  text-shadow: 0 0 24px rgba(255, 77, 61, 0.7);
+}
+
+@keyframes hud-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hud-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(57, 230, 122, 0);
+  }
+  50% {
+    box-shadow: 0 0 22px -4px rgba(57, 230, 122, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-theme]) *,
+  :root:not([data-theme]) *::before,
+  :root:not([data-theme]) *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
