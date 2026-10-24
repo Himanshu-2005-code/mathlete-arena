@@ -358,3 +358,124 @@
     opacity: 0;
   }
 }
+
+/* ---------- Panels and metric cards ----------
+   Aegis's "targeting reticle" frame: corner brackets that grow on hover. */
+
+:root:not([data-theme]) :is(.figure, .entry, .badge, .panel-card) {
+  position: relative;
+  isolation: isolate;
+}
+
+:root:not([data-theme]) :is(.figure, .entry)::before,
+:root:not([data-theme]) :is(.figure, .entry)::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  border-color: var(--accent);
+  opacity: 0.55;
+  transition: opacity 200ms ease, width 200ms ease, height 200ms ease;
+  z-index: 1;
+}
+
+:root:not([data-theme]) :is(.figure, .entry)::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+}
+
+:root:not([data-theme]) :is(.figure, .entry)::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+}
+
+:root:not([data-theme]) :is(.figure, .entry):hover::before,
+:root:not([data-theme]) :is(.figure, .entry):hover::after {
+  opacity: 1;
+  width: 20px;
+  height: 20px;
+}
+
+/* Metric cards. */
+:root:not([data-theme]) .result-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  max-width: 820px;
+}
+
+:root:not([data-theme]) .figure {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+  padding: 14px 16px 12px;
+  background: linear-gradient(180deg, rgba(214, 232, 222, 0.04), rgba(214, 232, 222, 0.01));
+  border: 1px solid var(--grid);
+}
+
+:root:not([data-theme]) .figure .num {
+  font-size: 3rem;
+  font-weight: 500;
+  color: var(--ink);
+  text-shadow: 0 0 18px rgba(57, 230, 122, 0.3);
+}
+
+:root:not([data-theme]) .figure .label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pencil);
+}
+
+/* Home and daily entries as panels. */
+:root:not([data-theme]) .entries {
+  display: grid;
+  gap: 12px;
+}
+
+:root:not([data-theme]) .entry {
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+
+:root:not([data-theme]) .entry:hover {
+  border-color: var(--grid-strong);
+  background: #10161a;
+}
+
+:root:not([data-theme]) .entry p {
+  color: var(--pencil);
+}
+
+/* Tables read like a readout. */
+:root:not([data-theme]) .ledger th {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pencil);
+}
+
+:root:not([data-theme]) .ledger td.num,
+:root:not([data-theme]) .ledger td.r {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+}
+
+:root:not([data-theme]) .ledger tbody tr:hover td {
+  background: rgba(214, 232, 222, 0.03);
+}
+
+:root:not([data-theme]) .ledger tr.me td {
+  background: rgba(57, 230, 122, 0.1);
+  color: var(--accent);
+}
