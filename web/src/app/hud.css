@@ -93,3 +93,63 @@
 :root:not([data-theme]) .lede {
   color: var(--pencil);
 }
+
+/* ---------- Geometry ----------
+   Hard-edged, military-hardware corners, and angled "cut corner" chips. */
+
+:root:not([data-theme]) :is(
+    .btn, .text-input, .tile, .code, .badge, .danger-zone, .rating-chart svg,
+    .ngrid, .mgrid, .xgrid, .skip-link, .menu-toggle, .ncell, .mcell, .xcell
+  ) {
+  border-radius: 3px;
+}
+
+:root:not([data-theme]) .choice span {
+  border-radius: 0;
+  border-width: 1px;
+  border-color: var(--grid-strong);
+  padding: 7px 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+}
+
+:root:not([data-theme]) .choice input:checked + span {
+  border-color: var(--accent);
+  background: rgba(57, 230, 122, 0.14);
+  color: var(--accent);
+}
+
+:root:not([data-theme]) .choice input:focus-visible + span {
+  outline: 2px solid var(--accent);
+}
+
+:root:not([data-theme]) .tag {
+  border-radius: 0;
+  border-color: var(--grid-strong);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 1px 8px;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+}
+
+:root:not([data-theme]) .text-input {
+  border-width: 1px;
+  border-color: var(--grid-strong);
+  background: var(--tile);
+}
+
+:root:not([data-theme]) .text-input:focus {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+:root:not([data-theme]) .panel {
+  border-top: 1px solid var(--grid-strong);
+}
+
+:root:not([data-theme]) .entry {
+  border-bottom-color: var(--grid);
+}
