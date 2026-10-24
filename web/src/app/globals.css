@@ -22,21 +22,6 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #12182d;
-    --grid: #1f2742;
-    --ink: #e4e9f8;
-    --ink-soft: #b8c3e6;
-    --pencil: #9aa3b8;
-    --margin-red: #ff6b6b;
-    --correct: #4fd19a;
-    --surface: #182040;
-    --tile: #232d52;
-    color-scheme: dark;
-  }
-}
-
 :root[data-theme="dark"] {
     --paper: #12182d;
     --grid: #1f2742;

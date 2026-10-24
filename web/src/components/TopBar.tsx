@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useSoundSetting } from "@/lib/sound";
-import { useTheme } from "@/lib/theme";
+import { THEME_LABELS, useTheme } from "@/lib/theme";
 
 const LINKS = [
   { href: "/duel", label: "Duel" },
@@ -53,9 +53,9 @@ export function TopBar() {
           type="button"
           className="linkish"
           onClick={cycleTheme}
-          title="Switch between light, dark, and your device's setting"
+          title="Switch between the HUD look and the paper notebook (day or night)"
         >
-          Theme: {theme === "system" ? "auto" : theme}
+          Theme: {THEME_LABELS[theme]}
         </button>
         <button
           type="button"

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/lib/auth";
 import { TopBar } from "@/components/TopBar";
 import "./globals.css";
+import "./hud.css";
 
 const description = "Speed math sprints, live duels, a daily challenge and number puzzles.";
 
@@ -14,10 +15,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f8fc" },
-    { media: "(prefers-color-scheme: dark)", color: "#12182d" },
-  ],
+  themeColor: "#07090a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
