@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Speed math sprints, duels, daily challenges and number puzzles.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f6f8fc",
-    theme_color: "#1b2a6b",
+    background_color: "#07090a",
+    theme_color: "#07090a",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
   };
 }
