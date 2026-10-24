@@ -46,3 +46,50 @@
   background: var(--accent);
   color: #0b0b0b;
 }
+
+/* ---------- Type ----------
+   Teko, a condensed stencil-style face, for headings and big numbers;
+   Rajdhani, squared-off and technical, for reading; JetBrains Mono for
+   small labels and readouts. */
+
+:root:not([data-theme]) {
+  --font-display: "Teko", Impact, "Arial Narrow", sans-serif;
+  --font-body: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root:not([data-theme]) body {
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Stencil headings: uppercase, a little tracking, tight leading. */
+:root:not([data-theme]) h1,
+:root:not([data-theme]) h2,
+:root:not([data-theme]) h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+  font-weight: 600;
+}
+
+:root:not([data-theme]) h1 {
+  font-size: clamp(2.75rem, 7vw, 4.5rem);
+}
+
+:root:not([data-theme]) h2 {
+  font-size: 2rem;
+}
+
+:root:not([data-theme]) h3 {
+  font-size: 1.5rem;
+}
+
+:root:not([data-theme]) .num {
+  font-weight: 500;
+}
+
+:root:not([data-theme]) .lede {
+  color: var(--pencil);
+}
