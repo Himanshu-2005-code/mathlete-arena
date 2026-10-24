@@ -563,3 +563,123 @@
   color: var(--correct);
   text-shadow: 0 0 14px rgba(125, 255, 106, 0.45);
 }
+
+/* ---------- Play screens ---------- */
+
+:root:not([data-theme]) .hero-q {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 28px rgba(57, 230, 122, 0.22);
+}
+
+:root:not([data-theme]) .hero-q .eq {
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+:root:not([data-theme]) .hero-input {
+  border-bottom: 4px solid var(--grid-strong);
+  caret-color: var(--accent);
+}
+
+:root:not([data-theme]) .hero-input:focus-visible {
+  border-bottom-color: var(--accent);
+  box-shadow: 0 10px 20px -14px rgba(57, 230, 122, 0.9);
+  outline: none;
+}
+
+:root:not([data-theme]) .hero-input.right {
+  color: var(--correct);
+  border-bottom-color: var(--correct);
+  text-shadow: 0 0 24px rgba(125, 255, 106, 0.6);
+}
+
+/* Status bar: numbers in Teko, labels in mono. */
+:root:not([data-theme]) .sprint-bar {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  align-items: center;
+}
+
+:root:not([data-theme]) .sprint-bar .num {
+  font-size: 2.4rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  vertical-align: -0.15em;
+}
+
+:root:not([data-theme]) .sprint-bar .low {
+  color: var(--margin-red);
+  text-shadow: 0 0 16px rgba(255, 77, 61, 0.6);
+  animation: hud-flicker 1s steps(2) infinite;
+}
+
+:root:not([data-theme]) .timer-track {
+  height: 3px;
+  background: var(--grid);
+}
+
+:root:not([data-theme]) .timer-fill {
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  box-shadow: 0 0 12px rgba(57, 230, 122, 0.7);
+}
+
+/* Puzzle grids. */
+:root:not([data-theme]) .ngrid,
+:root:not([data-theme]) .mgrid,
+:root:not([data-theme]) .xgrid {
+  box-shadow: 0 0 0 1px var(--grid), 0 24px 48px -28px rgba(0, 0, 0, 0.8);
+}
+
+:root:not([data-theme]) .ncell.line {
+  background: #10171a;
+}
+
+:root:not([data-theme]) .ncell.selected {
+  background: rgba(57, 230, 122, 0.1);
+  box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 18px rgba(57, 230, 122, 0.25);
+}
+
+:root:not([data-theme]) button.xcell.selected {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+:root:not([data-theme]) .mcell.on {
+  background: rgba(57, 230, 122, 0.85);
+  border-color: var(--accent);
+  color: #04130a;
+}
+
+:root:not([data-theme]) .tile {
+  border: 1px solid var(--grid-strong);
+  background: var(--tile);
+  font-weight: 500;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+:root:not([data-theme]) .tile:hover:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+:root:not([data-theme]) .tile.active {
+  border-color: var(--accent);
+  background: rgba(57, 230, 122, 0.16);
+  color: var(--accent);
+}
+
+:root:not([data-theme]) .tile.erase {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@keyframes hud-flicker {
+  50% {
+    opacity: 0.55;
+  }
+}
