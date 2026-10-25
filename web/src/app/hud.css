@@ -910,3 +910,68 @@
   color: var(--accent);
   border: 1px solid rgba(57, 230, 122, 0.5);
 }
+
+/* ---------- Sign-in card ---------- */
+
+:root:not([data-theme]) .auth-card {
+  position: relative;
+  padding: 26px 26px 22px;
+  background: linear-gradient(180deg, rgba(214, 232, 222, 0.04), rgba(214, 232, 222, 0.01)), var(--surface);
+  border: 1px solid var(--grid-strong);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9);
+}
+
+:root:not([data-theme]) .auth-card::before,
+:root:not([data-theme]) .auth-card::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+:root:not([data-theme]) .auth-card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--accent);
+  border-left: 2px solid var(--accent);
+}
+
+:root:not([data-theme]) .auth-card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+}
+
+/* A hazard strip along the top edge of the card. */
+:root:not([data-theme]) .auth-card .field:first-child::before {
+  content: "";
+  display: block;
+  height: 4px;
+  margin: -26px -26px 22px;
+  background-image: repeating-linear-gradient(-45deg, rgba(57, 230, 122, 0.55) 0 6px, transparent 6px 12px);
+}
+
+:root:not([data-theme]) .auth-card .text-input {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+}
+
+:root:not([data-theme]) .auth-aside h2 {
+  font-size: 1.5rem;
+}
+
+:root:not([data-theme]) .auth-aside li {
+  padding-left: 16px;
+  border-left: 2px solid rgba(57, 230, 122, 0.4);
+}
+
+:root:not([data-theme]) .auth-aside li strong {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}

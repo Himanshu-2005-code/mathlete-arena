@@ -1600,3 +1600,41 @@ main:focus {
 .daily-list .entry.cleared h3 {
   color: var(--pencil);
 }
+
+/* ---------- Sign-in layout ---------- */
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 360px);
+  gap: 40px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.auth-card .field:first-child {
+  margin-top: 0;
+}
+
+.auth-aside ul {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: grid;
+  gap: 14px;
+}
+
+.auth-aside li {
+  display: grid;
+  gap: 2px;
+}
+
+.auth-aside li span {
+  color: var(--pencil);
+}
+
+@media (max-width: 760px) {
+  .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}

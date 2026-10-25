@@ -48,7 +48,8 @@ export default function AuthPage() {
           : "Pick a username other players will see. Letters, numbers and underscores."}
       </p>
 
-      <form onSubmit={submit} noValidate>
+      <div className="auth-layout">
+      <form onSubmit={submit} noValidate className="auth-card">
         <div className="field">
           <label htmlFor="username">Username</label>
           <input
@@ -96,6 +97,28 @@ export default function AuthPage() {
           </button>
         </div>
       </form>
+      <aside className="auth-aside" aria-label="What an account gives you">
+        <h2>With an account</h2>
+        <ul>
+          <li>
+            <strong>Duel rating</strong>
+            <span>Every match moves your Elo; climb the board.</span>
+          </li>
+          <li>
+            <strong>Daily streak</strong>
+            <span>Six new games each day, ranked against everyone.</span>
+          </li>
+          <li>
+            <strong>Personal bests</strong>
+            <span>Sprints, solve times and arcade runs, all saved.</span>
+          </li>
+          <li>
+            <strong>Achievements</strong>
+            <span>Fifteen to earn, from your first win to a 30-day streak.</span>
+          </li>
+        </ul>
+      </aside>
+      </div>
     </section>
   );
 }
