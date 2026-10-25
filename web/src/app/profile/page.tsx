@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { ChangePassword } from "@/components/ChangePassword";
 import { Achievements } from "@/components/Achievements";
 import { RatingChart } from "@/components/RatingChart";
+import { EmptyState } from "@/components/EmptyState";
 
 const modeLabel = (id: string) => PRACTICE_MODES.find((m) => m.id === id)?.label ?? id;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -82,20 +83,24 @@ export default function ProfilePage() {
       <p className="lede">Playing since {new Date(`${user.createdAt.replace(" ", "T")}Z`).toLocaleDateString()}.</p>
 
       {nothingYet ? (
-        <>
-          <p className="notice">No games yet. Your first duel, sprint or puzzle will show up here.</p>
-          <div className="actions">
-            <Link href="/duel" className="btn">
-              Find a duel
-            </Link>
-            <Link href="/practice" className="btn ghost">
-              Start a sprint
-            </Link>
-            <Link href="/puzzles" className="btn ghost">
-              Solve a puzzle
-            </Link>
-          </div>
-        </>
+        <EmptyState
+          title="No games yet"
+          actions={
+            <>
+              <Link href="/duel" className="btn">
+                Find a duel
+              </Link>
+              <Link href="/practice" className="btn ghost">
+                Start a sprint
+              </Link>
+              <Link href="/puzzles" className="btn ghost">
+                Solve a puzzle
+              </Link>
+            </>
+          }
+        >
+          Your first duel, sprint or puzzle will show up here.
+        </EmptyState>
       ) : (
         <>
           <div className="result-figures">

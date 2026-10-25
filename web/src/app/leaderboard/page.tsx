@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Leaderboard, LeaderboardKind } from "@matik/shared";
 import { Choices } from "@/components/Choices";
+import { EmptyState } from "@/components/EmptyState";
 import { formatTime } from "@/components/CrossMathBoard";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -110,7 +111,7 @@ export default function LeaderboardPage() {
 
       {error && <p className="error">{error}</p>}
       {!board && !error && <p className="notice">Loading…</p>}
-      {board && board.rows.length === 0 && <p className="notice">{cols.empty}</p>}
+      {board && board.rows.length === 0 && <EmptyState title="No entries yet">{cols.empty}</EmptyState>}
       {board && board.rows.length > 0 && (
         <div className="table-scroll">
           <table className="ledger">

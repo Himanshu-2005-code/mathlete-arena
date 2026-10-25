@@ -1667,3 +1667,47 @@ main:focus {
   background: #d79a64;
   color: #2b1500;
 }
+
+/* ---------- Empty states ---------- */
+
+.empty-state {
+  margin-top: 24px;
+  padding: 28px 24px;
+  max-width: 640px;
+  border: 2px dashed var(--grid);
+  text-align: center;
+}
+
+.empty-state h2 {
+  font-size: 1.4rem;
+}
+
+.empty-state p {
+  margin: 8px auto 0;
+  color: var(--pencil);
+  max-width: 48ch;
+}
+
+.empty-state .actions {
+  justify-content: center;
+}
+
+.empty-icon {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  border: 2px solid var(--grid);
+  border-radius: 50%;
+}
+
+.empty-icon span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--pencil);
+}
