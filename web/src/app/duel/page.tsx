@@ -174,7 +174,7 @@ export default function DuelPage() {
   if (!user) {
     return (
       <section>
-        <h1>Duel</h1>
+        <h1 data-kicker="Mode 01 // versus">Duel</h1>
         <p className="lede">
           Race another player through the same questions for one minute. The winner takes rating points from the loser.
           Sign in to play.
@@ -263,7 +263,7 @@ export default function DuelPage() {
     const sign = phase.ratingChange > 0 ? "+" : "";
     return (
       <section className="results">
-        <h1>{HEADLINE[phase.outcome]}</h1>
+        <h1 data-kicker="Duel // result">{HEADLINE[phase.outcome]}</h1>
         <p className="lede">
           {phase.reason === "forfeit"
             ? phase.outcome === "win"
@@ -349,7 +349,7 @@ export default function DuelPage() {
 
   return (
     <section>
-      <h1>Duel</h1>
+      <h1 data-kicker="Mode 01 // versus">Duel</h1>
       <p className="lede">
         One minute, the same questions for both players, and the most right answers wins. Wins and losses move your
         rating, which starts at 1000.

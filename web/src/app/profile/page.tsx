@@ -54,7 +54,7 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <section>
-        <h1>Your profile</h1>
+        <h1 data-kicker="Player // profile">Your profile</h1>
         <p className="lede">Sign in to see your best sprints, puzzle times and recent games.</p>
         <div className="actions">
           <Link href="/auth" className="btn">
@@ -78,7 +78,7 @@ export default function ProfilePage() {
 
   return (
     <section>
-      <h1>{user.username}</h1>
+      <h1 data-kicker={`Player // rating ${user.rating}`}>{user.username}</h1>
       <p className="lede">Playing since {new Date(`${user.createdAt.replace(" ", "T")}Z`).toLocaleDateString()}.</p>
 
       {nothingYet ? (

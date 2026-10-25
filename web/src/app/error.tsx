@@ -11,7 +11,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
 
   return (
     <section className="results">
-      <h1>Something went wrong on this page.</h1>
+      <h1 data-kicker="Error // page fault">Something went wrong on this page.</h1>
       <p className="lede">
         Try it again. If it keeps happening, reload the page; your account and scores are safe on the server.
       </p>

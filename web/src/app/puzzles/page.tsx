@@ -76,7 +76,7 @@ export default function PuzzlesPage() {
 
   return (
     <section>
-      <h1>Puzzles</h1>
+      <h1 data-kicker="Mode 03 // solo">Puzzles</h1>
 
       <Choices
         legend="Game"

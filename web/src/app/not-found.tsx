@@ -8,7 +8,7 @@ export default function NotFound() {
         <span className="eq">≠</span>
         <span className="muted">?</span>
       </p>
-      <h1>This page doesn't add up.</h1>
+      <h1 data-kicker="Error // 404">This page doesn't add up.</h1>
       <p className="lede">There's nothing at this address. It may have moved, or the link has a typo.</p>
       <div className="actions">
         <Link href="/" className="btn">

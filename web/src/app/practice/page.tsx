@@ -216,7 +216,7 @@ export default function PracticePage() {
   if (phase === "setup") {
     return (
       <section>
-        <h1>Practice sprint</h1>
+        <h1 data-kicker="Mode 02 // training">Practice sprint</h1>
         <p className="lede">
           Answer as many as you can before time runs out. Each question moves on as soon as you type the right answer;
           press Enter to give up on a wrong one.
@@ -347,7 +347,7 @@ export default function PracticePage() {
 
   return (
     <section className="results">
-      <h1>Time.</h1>
+      <h1 data-kicker="Sprint // complete">Time.</h1>
       <div className="result-figures">
         <div className="figure">
           <span className="num">{tally.score}</span>

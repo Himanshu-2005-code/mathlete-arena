@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
 
   return (
     <section>
-      <h1>Leaderboard</h1>
+      <h1 data-kicker="Rankings // live">Leaderboard</h1>
       <p className="lede">
         {kind === "rating"
           ? "Everyone who has played a duel, by rating."

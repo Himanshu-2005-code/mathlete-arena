@@ -523,7 +523,7 @@ export default function ArcadePage() {
 
   return (
     <section>
-      <h1>Arcade</h1>
+      <h1 data-kicker="Mode 04 // arcade">Arcade</h1>
       <Choices
         legend="Game"
         name="arcade-game"

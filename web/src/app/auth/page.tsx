@@ -31,7 +31,7 @@ export default function AuthPage() {
   if (user) {
     return (
       <section>
-        <h1>You're signed in</h1>
+        <h1 data-kicker="Account // online">You're signed in</h1>
         <p className="lede">Signed in as {user.username}.</p>
       </section>
     );
@@ -41,7 +41,7 @@ export default function AuthPage() {
 
   return (
     <section>
-      <h1>{isSignIn ? "Sign in" : "Create an account"}</h1>
+      <h1 data-kicker={isSignIn ? "Access // sign in" : "Access // new player"}>{isSignIn ? "Sign in" : "Create an account"}</h1>
       <p className="lede">
         {isSignIn
           ? "Your scores and solve times are saved to your account."

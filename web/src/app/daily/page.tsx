@@ -292,7 +292,7 @@ export default function DailyPage() {
 
   return (
     <section>
-      <h1>Daily challenge</h1>
+      <h1 data-kicker={`Daily // ${info.day}`}>Daily challenge</h1>
       <p className="lede">
         {date}. Six games, the same for everyone today, and your first try at each is the one that counts. Play any one
         to keep your streak.
