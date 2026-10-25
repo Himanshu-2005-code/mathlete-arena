@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ARCADE_GAMES, type PlayerProfile } from "@matik/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Skeleton } from "@/components/Skeleton";
 
 export default function PlayerPage() {
   const { name } = useParams<{ name: string }>();
@@ -35,7 +36,7 @@ export default function PlayerPage() {
         </div>
       </section>
     );
-  if (!p) return <p className="notice">Loading {username}…</p>;
+  if (!p) return <Skeleton label={`Loading ${username}`} />;
 
   const { duels } = p;
   const figures: { value: string | number; label: string }[] = [

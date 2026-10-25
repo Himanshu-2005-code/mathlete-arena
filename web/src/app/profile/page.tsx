@@ -9,6 +9,7 @@ import { ChangePassword } from "@/components/ChangePassword";
 import { Achievements } from "@/components/Achievements";
 import { RatingChart } from "@/components/RatingChart";
 import { EmptyState } from "@/components/EmptyState";
+import { Skeleton } from "@/components/Skeleton";
 
 const modeLabel = (id: string) => PRACTICE_MODES.find((m) => m.id === id)?.label ?? id;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -67,7 +68,7 @@ export default function ProfilePage() {
   }
 
   if (error) return <p className="error">{error}</p>;
-  if (!stats) return <p className="notice">Loading your stats…</p>;
+  if (!stats) return <Skeleton label="Loading your stats" />;
 
   const { practice, puzzles, duels, recent } = stats;
   const nothingYet =

@@ -20,6 +20,7 @@ import { PuzzlePlayer, type PuzzleSolved } from "@/components/PuzzlePlayer";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { playCorrect } from "@/lib/sound";
+import { Skeleton } from "@/components/Skeleton";
 
 /** The leaderboard tab for each daily game (cross-math was the first, so it's "puzzle"). */
 type Board = "sprint" | "puzzle" | Exclude<PuzzleKind, "crossmath">;
@@ -264,7 +265,7 @@ export default function DailyPage() {
   }, []);
 
   if (error) return <p className="error">{error}</p>;
-  if (!info) return <p className="notice">Loading today's challenge…</p>;
+  if (!info) return <Skeleton label="Loading today's challenge" />;
 
   const date = new Date(`${info.day}T00:00:00`).toLocaleDateString(undefined, {
     weekday: "long",

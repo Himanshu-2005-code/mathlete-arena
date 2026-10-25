@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { formatTime } from "@/components/CrossMathBoard";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { Skeleton } from "@/components/Skeleton";
 
 const KINDS: { value: LeaderboardKind; label: string }[] = [
   { value: "rating", label: "Duel rating" },
@@ -110,7 +111,7 @@ export default function LeaderboardPage() {
       <Choices legend="Board" name="board" value={kind} onChange={pickBoard} options={KINDS} />
 
       {error && <p className="error">{error}</p>}
-      {!board && !error && <p className="notice">Loading…</p>}
+      {!board && !error && <Skeleton label="Loading the leaderboard" variant="table" />}
       {board && board.rows.length === 0 && <EmptyState title="No entries yet">{cols.empty}</EmptyState>}
       {board && board.rows.length > 0 && (
         <div className="table-scroll">

@@ -1765,3 +1765,75 @@ main:focus {
     animation: none;
   }
 }
+
+/* ---------- Loading skeletons ---------- */
+
+.skeleton {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+  max-width: 820px;
+}
+
+.sk {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--tile);
+  border-radius: 4px;
+}
+
+.sk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: sk-shimmer 1.6s ease-in-out infinite;
+}
+
+.sk-kicker {
+  width: 140px;
+  height: 10px;
+}
+
+.sk-title {
+  width: min(70%, 420px);
+  height: 48px;
+}
+
+.sk-line {
+  width: min(100%, 560px);
+  height: 14px;
+}
+
+.sk-line.short {
+  width: min(60%, 320px);
+}
+
+.sk-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sk-card {
+  height: 92px;
+}
+
+.sk-row {
+  height: 38px;
+}
+
+@keyframes sk-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk::after {
+    animation: none;
+  }
+}
