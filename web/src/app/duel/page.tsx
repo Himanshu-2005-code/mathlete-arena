@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Radar } from "@/components/Radar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type DuelEndReason,
@@ -369,7 +370,8 @@ export default function DuelPage() {
       )}
 
       {phase.kind === "searching" ? (
-        <div className="panel" aria-live="polite">
+        <div className="panel searching" aria-live="polite">
+          <Radar seconds={Math.floor((now - phase.since) / 1000)} />
           <h2>Looking for an opponent</h2>
           <p className="muted">
             Searching for {Math.floor((now - phase.since) / 1000)}s. The longer you wait, the wider the rating range we

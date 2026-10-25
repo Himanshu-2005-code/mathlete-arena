@@ -1481,3 +1481,82 @@ main:focus {
 .badge.earned strong {
   color: var(--correct);
 }
+
+/* ---------- Radar (duel search) ---------- */
+
+.radar {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 8px 0 18px;
+  border-radius: 50%;
+  border: 1px solid var(--grid);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.radar-rings {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 0 24%, var(--grid) 24% calc(24% + 1px), transparent calc(24% + 1px) 49%,
+      var(--grid) 49% calc(49% + 1px), transparent calc(49% + 1px)),
+    linear-gradient(var(--grid), var(--grid)) center / 100% 1px no-repeat,
+    linear-gradient(var(--grid), var(--grid)) center / 1px 100% no-repeat;
+}
+
+.radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0 75%, rgba(27, 42, 107, 0.35) 100%);
+  animation: radar-sweep 2.4s linear infinite;
+}
+
+.radar-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.radar-dot.ping {
+  animation: radar-ping 1.8s ease-out infinite;
+}
+
+.radar-time {
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 1.1rem;
+  color: var(--pencil);
+}
+
+@keyframes radar-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radar-sweep,
+  .radar-dot.ping {
+    animation: none;
+  }
+}

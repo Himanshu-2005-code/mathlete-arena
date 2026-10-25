@@ -840,3 +840,28 @@
   height: 1px;
   background: linear-gradient(90deg, var(--accent), rgba(57, 230, 122, 0.25) 30%, transparent);
 }
+
+/* ---------- Radar ---------- */
+
+:root:not([data-theme]) .radar {
+  background: radial-gradient(circle, rgba(57, 230, 122, 0.08), transparent 70%), var(--surface);
+  border-color: rgba(57, 230, 122, 0.35);
+  box-shadow: var(--glow), inset 0 0 30px rgba(57, 230, 122, 0.08);
+}
+
+:root:not([data-theme]) .radar-rings {
+  --grid: rgba(57, 230, 122, 0.22);
+}
+
+:root:not([data-theme]) .radar-sweep {
+  background: conic-gradient(from 0deg, transparent 0 70%, rgba(57, 230, 122, 0.45) 100%);
+}
+
+:root:not([data-theme]) .radar-dot {
+  background: var(--correct);
+  box-shadow: 0 0 10px var(--correct);
+}
+
+:root:not([data-theme]) .radar-time {
+  color: var(--accent);
+}
