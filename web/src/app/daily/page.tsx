@@ -313,9 +313,16 @@ export default function DailyPage() {
         </p>
       )}
       {user && (
-        <p className="muted">
-          {done} of {slots.length} played today.
-        </p>
+        <div className="progress-meter" role="img" aria-label={`${done} of ${slots.length} played today`}>
+          <div className="segments" aria-hidden>
+            {slots.map((slot) => (
+              <span key={slot.id} className={results[slot.id] ? "seg on" : "seg"} title={slot.title} />
+            ))}
+          </div>
+          <span className="meter-label">
+            <span className="num">{done}</span>/{slots.length} cleared today
+          </span>
+        </div>
       )}
       <ShareDaily day={info.day} slots={slots} results={results} streak={streak?.current ?? 0} />
 
@@ -324,7 +331,7 @@ export default function DailyPage() {
           const result = results[slot.id] ?? null;
           const isOpen = open === slot.id;
           return (
-            <li key={slot.id} className={`entry${isOpen ? " open" : ""}`}>
+            <li key={slot.id} className={`entry${isOpen ? " open" : ""}${result ? " cleared" : ""}`}>
               <div>
                 <h3>
                   {result && <span className="done-mark" aria-label="Played">✓ </span>}

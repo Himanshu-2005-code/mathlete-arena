@@ -1560,3 +1560,43 @@ main:focus {
     animation: none;
   }
 }
+
+/* ---------- Daily progress meter ---------- */
+
+.progress-meter {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.progress-meter .segments {
+  display: flex;
+  gap: 4px;
+}
+
+.progress-meter .seg {
+  width: 34px;
+  height: 10px;
+  background: var(--grid);
+  transform: skewX(-20deg);
+}
+
+.progress-meter .seg.on {
+  background: var(--correct);
+}
+
+.meter-label {
+  color: var(--pencil);
+}
+
+.meter-label .num {
+  color: var(--ink);
+  font-size: 1.3rem;
+  margin-right: 1px;
+}
+
+.daily-list .entry.cleared h3 {
+  color: var(--pencil);
+}
