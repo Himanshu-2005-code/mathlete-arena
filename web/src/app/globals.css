@@ -1638,3 +1638,32 @@ main:focus {
     gap: 28px;
   }
 }
+
+/* ---------- Leaderboard podium ---------- */
+
+.ledger .rank {
+  display: inline-block;
+  min-width: 1.8em;
+  text-align: center;
+}
+
+.podium .rank {
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.podium-1 .rank {
+  background: #f2c94c;
+  color: #2b2100;
+}
+
+.podium-2 .rank {
+  background: #c7ced9;
+  color: #1c2230;
+}
+
+.podium-3 .rank {
+  background: #d79a64;
+  color: #2b1500;
+}

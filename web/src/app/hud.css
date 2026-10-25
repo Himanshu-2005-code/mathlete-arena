@@ -975,3 +975,37 @@
   text-transform: uppercase;
   color: var(--accent);
 }
+
+/* ---------- Podium ---------- */
+
+:root:not([data-theme]) .podium .rank {
+  border-radius: 0;
+  padding: 2px 8px 0;
+  font-weight: 600;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+
+:root:not([data-theme]) .podium-1 .rank {
+  background: var(--warning);
+  color: #1a1200;
+  box-shadow: 0 0 18px rgba(255, 184, 28, 0.5);
+}
+
+:root:not([data-theme]) .podium-2 .rank {
+  background: #cfe0d7;
+  color: #0c1210;
+}
+
+:root:not([data-theme]) .podium-3 .rank {
+  background: #c98a54;
+  color: #1a0d00;
+}
+
+:root:not([data-theme]) .ledger tr.podium-1 td {
+  background: linear-gradient(90deg, rgba(255, 184, 28, 0.08), transparent 70%);
+}
+
+:root:not([data-theme]) .ledger tr.podium td:nth-child(2) {
+  font-weight: 700;
+  color: var(--ink);
+}

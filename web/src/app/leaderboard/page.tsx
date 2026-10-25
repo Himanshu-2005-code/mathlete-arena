@@ -130,8 +130,17 @@ export default function LeaderboardPage() {
                     <td colSpan={cols.detail ? 3 : 2} />
                   </tr>
                 ) : (
-                  <tr key={`${r.username}-${i}`} className={user?.username === r.username ? "me" : undefined}>
-                    <td className="r num">{r.rank}</td>
+                  <tr
+                    key={`${r.username}-${i}`}
+                    className={
+                      [user?.username === r.username && "me", r.rank <= 3 && `podium podium-${r.rank}`]
+                        .filter(Boolean)
+                        .join(" ") || undefined
+                    }
+                  >
+                    <td className="r num">
+                      <span className="rank">{r.rank}</span>
+                    </td>
                     <td>
                       <Link href={`/player/${encodeURIComponent(r.username)}`} className="plain-link">
                         {r.username}
