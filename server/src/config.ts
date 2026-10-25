@@ -5,6 +5,30 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 export const PORT = Number(process.env.PORT ?? 4000);
 export const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:3000";
+
+/**
+ * Sites allowed to call the API and open duel sockets: a comma-separated
+ * list, where an entry may start with "*." to cover subdomains, e.g.
+ * "https://matik.vercel.app,https://*.vercel.app" for Vercel previews too.
+ */
+export function isAllowedOrigin(origin: string | undefined, allowed = WEB_ORIGIN): boolean {
+  if (!origin) return true; // same-origin requests and non-browser clients
+  return allowed
+    .split(",")
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter(Boolean)
+    .some((entry) => {
+      if (entry === "*") return true;
+      const wild = entry.match(/^(https?:\/\/)\*\.(.+)$/);
+      if (!wild) return origin === entry;
+      const [, scheme, base] = wild;
+      return origin.startsWith(scheme) && origin.endsWith(`.${base}`) && !origin.slice(scheme.length).includes("/");
+    });
+}
+
+/** The cors/socket.io origin option built from WEB_ORIGIN. */
+export const corsOrigin = (origin: string | undefined, cb: (err: Error | null, ok?: boolean) => void) =>
+  cb(null, isAllowedOrigin(origin));
 export const DB_PATH = process.env.DB_PATH ?? path.resolve(here, "../data/matik.db");
 
 /** Daily challenges roll over at midnight in this UTC offset (default IST). */

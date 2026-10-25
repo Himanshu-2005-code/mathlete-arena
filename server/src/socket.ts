@@ -2,13 +2,13 @@ import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import type { ClientToServerEvents, ServerToClientEvents } from "@matik/shared";
 import { verifyToken } from "./auth";
-import { WEB_ORIGIN } from "./config";
+import { corsOrigin } from "./config";
 import type { Db } from "./db";
 import { type DuelOptions, DuelManager } from "./duels";
 
 /** Real-time layer: authenticated sockets feeding the duel manager. */
 export function attachSocket(httpServer: HttpServer, db: Db, opts: DuelOptions = {}) {
-  const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, { cors: { origin: WEB_ORIGIN } });
+  const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, { cors: { origin: corsOrigin } });
   const duels = new DuelManager(io, db, opts);
 
   io.use((socket, next) => {

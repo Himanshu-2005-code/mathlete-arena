@@ -29,7 +29,7 @@ import {
   toPublicUser,
   verifyPassword,
 } from "./auth";
-import { WEB_ORIGIN } from "./config";
+import { corsOrigin } from "./config";
 import { isReservedName } from "./bots";
 import { dailyStreak, registerCompetitionRoutes } from "./compete";
 import { answerExpressions, answerGrid, answerPath, arcadeGame, puzzleKind } from "./schemas";
@@ -110,7 +110,7 @@ export function createApp(db: Db) {
       next();
     });
   }
-  app.use(cors({ origin: WEB_ORIGIN }));
+  app.use(cors({ origin: corsOrigin }));
   // Slow down password guessing and sign-up spam.
   app.use(
     "/api/auth",
