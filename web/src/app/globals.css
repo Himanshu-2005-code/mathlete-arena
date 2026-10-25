@@ -1837,3 +1837,62 @@ main:focus {
     animation: none;
   }
 }
+
+/* ---------- Daily status strip ---------- */
+
+.status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 28px;
+  margin-top: 18px;
+}
+
+.status-strip > * {
+  margin: 0;
+}
+
+/* ---------- Searching panel ---------- */
+
+.panel.searching {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "radar title" "radar text" "radar actions";
+  column-gap: 28px;
+  align-items: start;
+}
+
+.panel.searching .radar {
+  grid-area: radar;
+  margin: 0;
+}
+
+.panel.searching h2 {
+  grid-area: title;
+  align-self: end;
+}
+
+.panel.searching p {
+  grid-area: text;
+}
+
+.panel.searching .actions {
+  grid-area: actions;
+}
+
+.radar-time {
+  right: auto;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 560px) {
+  .panel.searching {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "radar" "title" "text" "actions";
+  }
+  .panel.searching .radar {
+    margin-bottom: 14px;
+  }
+}

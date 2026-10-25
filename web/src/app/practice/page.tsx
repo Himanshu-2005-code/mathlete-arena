@@ -216,7 +216,7 @@ export default function PracticePage() {
   if (phase === "setup") {
     return (
       <section>
-        <h1 data-kicker="Mode 02 // training">Practice sprint</h1>
+        <h1 data-kicker="Mode 01 // training">Practice sprint</h1>
         <p className="lede">
           Answer as many as you can before time runs out. Each question moves on as soon as you type the right answer;
           press Enter to give up on a wrong one.

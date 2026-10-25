@@ -282,7 +282,11 @@ export default function DailyPage() {
   } as Record<PuzzleKind, AnyPublicPuzzle>;
 
   const slots: { id: Slot; title: string; about: string }[] = [
-    { id: "sprint", title: "Sprint", about: "One minute of mixed questions that get harder as you go. Most points wins." },
+    {
+      id: "sprint",
+      title: "Sprint",
+      about: "One minute of mixed questions that get harder as you go. Most points wins.",
+    },
     ...(["crossmath", "kenken", "sudoku", "maze", "hectoc"] as PuzzleKind[]).map((k) => ({
       id: k,
       title: puzzleInfo(k).label,
@@ -293,38 +297,40 @@ export default function DailyPage() {
 
   return (
     <section>
-      <h1 data-kicker={`Daily // ${info.day}`}>Daily challenge</h1>
+      <h1 data-kicker={`Mode 04 // daily ${info.day}`}>Daily challenge</h1>
       <p className="lede">
         {date}. Six games, the same for everyone today, and your first try at each is the one that counts. Play any one
         to keep your streak.
       </p>
-      <Countdown to={info.nextAt} />
-      {streak && (
-        <p className="streak">
-          {streak.current > 0 ? (
-            <>
-              <span className="num">{streak.current}</span> {streak.current === 1 ? "day" : "days"} in a row
-              {streak.best > streak.current && <span className="muted">, best {streak.best}</span>}
-            </>
-          ) : (
-            <span className="muted">
-              Play today to start a streak{streak.best > 0 ? ` (your best is ${streak.best} days)` : ""}.
+      <div className="status-strip">
+        <Countdown to={info.nextAt} />
+        {streak && (
+          <p className="streak">
+            {streak.current > 0 ? (
+              <>
+                <span className="num">{streak.current}</span> {streak.current === 1 ? "day" : "days"} in a row
+                {streak.best > streak.current && <span className="muted">, best {streak.best}</span>}
+              </>
+            ) : (
+              <span className="muted">
+                Play today to start a streak{streak.best > 0 ? ` (your best is ${streak.best} days)` : ""}.
+              </span>
+            )}
+          </p>
+        )}
+        {user && (
+          <div className="progress-meter" role="img" aria-label={`${done} of ${slots.length} played today`}>
+            <div className="segments" aria-hidden>
+              {slots.map((slot) => (
+                <span key={slot.id} className={results[slot.id] ? "seg on" : "seg"} title={slot.title} />
+              ))}
+            </div>
+            <span className="meter-label">
+              <span className="num">{done}</span>/{slots.length} cleared today
             </span>
-          )}
-        </p>
-      )}
-      {user && (
-        <div className="progress-meter" role="img" aria-label={`${done} of ${slots.length} played today`}>
-          <div className="segments" aria-hidden>
-            {slots.map((slot) => (
-              <span key={slot.id} className={results[slot.id] ? "seg on" : "seg"} title={slot.title} />
-            ))}
           </div>
-          <span className="meter-label">
-            <span className="num">{done}</span>/{slots.length} cleared today
-          </span>
-        </div>
-      )}
+        )}
+      </div>
       <ShareDaily day={info.day} slots={slots} results={results} streak={streak?.current ?? 0} />
 
       <ul className="entries daily-list">
@@ -335,7 +341,11 @@ export default function DailyPage() {
             <li key={slot.id} className={`entry${isOpen ? " open" : ""}${result ? " cleared" : ""}`}>
               <div>
                 <h3>
-                  {result && <span className="done-mark" aria-label="Played">✓ </span>}
+                  {result && (
+                    <span className="done-mark" aria-label="Played">
+                      ✓{" "}
+                    </span>
+                  )}
                   {slot.title}
                 </h3>
                 {result ? (
