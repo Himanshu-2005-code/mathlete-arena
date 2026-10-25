@@ -1711,3 +1711,57 @@ main:focus {
   border-radius: 50%;
   background: var(--pencil);
 }
+
+/* ---------- Ticker ---------- */
+
+.ticker {
+  margin-top: 40px;
+  overflow: hidden;
+  border-top: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker 48s linear infinite;
+}
+
+.ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+
+.ticker-row {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ticker-row li {
+  padding: 10px 28px;
+  white-space: nowrap;
+  color: var(--pencil);
+  font-size: 0.9rem;
+}
+
+.ticker-row li::before {
+  content: "◆";
+  margin-right: 12px;
+  font-size: 0.6em;
+  vertical-align: 0.2em;
+  color: var(--margin-red);
+}
+
+@keyframes ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+}

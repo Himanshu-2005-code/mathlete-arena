@@ -1027,3 +1027,22 @@
   background: var(--accent);
   box-shadow: 0 0 10px var(--accent);
 }
+
+/* ---------- Ticker ---------- */
+
+:root:not([data-theme]) .ticker {
+  background: rgba(13, 17, 19, 0.8);
+  border-color: var(--grid-strong);
+}
+
+:root:not([data-theme]) .ticker-row li {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:root:not([data-theme]) .ticker-row li::before {
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent);
+}
