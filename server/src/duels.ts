@@ -29,6 +29,10 @@ export interface DuelOptions {
   botAfterMs?: number;
   /** Randomness for bot timing, injectable for tests. */
   botRand?: () => number;
+  /** Fastest a correct answer may follow the previous one (anti-script). */
+  minAnswerMs?: number;
+  /** After a wrong answer, further answers are ignored for this long. */
+  wrongLockMs?: number;
 }
 
 interface Player extends DuelPlayerInfo {
@@ -40,6 +44,9 @@ interface Side {
   player: Player;
   score: number;
   index: number;
+  /** When this side's current question appeared, and until when it's locked out. */
+  shownAt: number;
+  lockedUntil: number;
 }
 
 interface Duel {
@@ -86,6 +93,8 @@ export class DuelManager {
   private countdownMs: number;
   private botAfterMs: number;
   private botRand: () => number;
+  private minAnswerMs: number;
+  private wrongLockMs: number;
 
   constructor(
     private io: IO,
@@ -96,6 +105,8 @@ export class DuelManager {
     this.countdownMs = opts.countdownMs ?? DUEL_COUNTDOWN_MS;
     this.botAfterMs = opts.botAfterMs ?? 10_000;
     this.botRand = opts.botRand ?? Math.random;
+    this.minAnswerMs = opts.minAnswerMs ?? 200;
+    this.wrongLockMs = opts.wrongLockMs ?? 1000;
     if (this.botAfterMs > 0) ensureBots(db);
     this.matchTimer = setInterval(() => this.matchQueue(), opts.matchIntervalMs ?? 1000);
   }
@@ -322,8 +333,8 @@ export class DuelManager {
       startsAt: now + this.countdownMs,
       endsAt: now + this.countdownMs + this.durationMs,
       sides: [
-        { player: a, score: 0, index: 0 },
-        { player: b, score: 0, index: 0 },
+        { player: a, score: 0, index: 0, shownAt: 0, lockedUntil: 0 },
+        { player: b, score: 0, index: 0, shownAt: 0, lockedUntil: 0 },
       ],
       timer: setTimeout(() => this.finish(duel, "time"), this.countdownMs + this.durationMs),
       botTimers: [],
@@ -378,6 +389,7 @@ export class DuelManager {
     const them = this.other(duel, me);
     me.score++;
     me.index++;
+    me.shownAt = Date.now();
     this.send(me.player, "duel:progress", { you: me.score, opponent: them.score, yourIndex: me.index });
     this.send(them.player, "duel:progress", { you: them.score, opponent: me.score, yourIndex: them.index });
   }
@@ -395,7 +407,13 @@ export class DuelManager {
     if (now < duel.startsAt || now > duel.endsAt) return;
     if (!a || a.index !== me.index || !Number.isFinite(a.value)) return;
 
+    // The app only ever sends right answers, so wrong ones come from guessing
+    // scripts: lock that player out for a moment. Answers faster than anyone
+    // could read and type are ignored the same way.
+    const shownAt = Math.max(me.shownAt, duel.startsAt);
+    if (now < me.lockedUntil || now - shownAt < this.minAnswerMs) return;
     if (sequenceQuestion(duel.seed, me.index).answer !== a.value) {
+      me.lockedUntil = now + this.wrongLockMs;
       this.io.to(socketId).emit("duel:wrong", { index: me.index });
       return;
     }

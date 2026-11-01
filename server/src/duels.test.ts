@@ -36,6 +36,8 @@ async function setup(durationMs = 1500, extra: DuelOptions = {}) {
     countdownMs: 100,
     matchIntervalMs: 50,
     botAfterMs: 0,
+    minAnswerMs: 0,
+    wrongLockMs: 0,
     ...extra,
   });
   await new Promise<void>((r) => server.listen(0, r));
@@ -108,6 +110,45 @@ describe("duels", () => {
 
     const board = (await request(app).get("/api/leaderboard?kind=rating")).body;
     expect(board.rows.map((r: { username: string }) => r.username)).toEqual(["alice", "bobby"]);
+  });
+
+  it("ignores instant answers and locks out guessing", async () => {
+    const { player } = await setup(3000, { minAnswerMs: 150, wrongLockMs: 400 });
+    const a = await player("guesser");
+    const b = await player("steady");
+    const startA = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const da = await startA;
+    await sleep(da.startsAt - Date.now() + 20);
+    const right = (i: number) => ({ index: i, value: sequenceQuestion(da.seed, i).answer });
+    let progress = 0;
+    a.sock.on("duel:progress", () => progress++);
+
+    // Too soon after the question appeared: ignored.
+    a.sock.emit("duel:answer", right(0));
+    await sleep(60);
+    expect(progress).toBe(0);
+
+    // After the minimum time it counts.
+    await sleep(120);
+    a.sock.emit("duel:answer", right(0));
+    await sleep(60);
+    expect(progress).toBe(1);
+
+    // A wrong guess locks the player out, so the right answer straight after is ignored...
+    await sleep(170);
+    a.sock.emit("duel:answer", { index: 1, value: right(1).value + 1 });
+    await sleep(20);
+    a.sock.emit("duel:answer", right(1));
+    await sleep(60);
+    expect(progress).toBe(1);
+
+    // ...until the lockout ends.
+    await sleep(350);
+    a.sock.emit("duel:answer", right(1));
+    await sleep(60);
+    expect(progress).toBe(2);
   });
 
   it("runs friend challenges and treats leaving as a forfeit", async () => {
