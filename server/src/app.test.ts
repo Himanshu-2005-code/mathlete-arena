@@ -101,12 +101,29 @@ describe("public player pages", () => {
   });
 });
 
+describe("practice score checks", () => {
+  it("rejects scores the answers can't add up to", async () => {
+    const app = setup();
+    const auth = { Authorization: `Bearer ${await register(app)}` };
+    const sprint = { mode: "mixed", adaptive: true, durationSec: 30, maxLevel: 3, avgMs: 900 };
+    const ok = await request(app).post("/api/results/practice").set(auth).send({ ...sprint, score: 30, correct: 10, attempts: 12 });
+    expect(ok.status).toBe(201);
+    const inflated = await request(app).post("/api/results/practice").set(auth).send({ ...sprint, score: 31, correct: 10, attempts: 12 });
+    expect(inflated.status).toBe(400);
+    const tooMany = await request(app)
+      .post("/api/results/practice")
+      .set(auth)
+      .send({ ...sprint, maxLevel: 1, score: 151, correct: 151, attempts: 151 });
+    expect(tooMany.status).toBe(400);
+  });
+});
+
 describe("practice personal bests", () => {
   it("reports the previous best and whether this one beats it", async () => {
     const app = setup();
     const auth = { Authorization: `Bearer ${await register(app)}` };
     const sprint = (score: number) => ({
-      mode: "mixed", adaptive: true, durationSec: 60, score, correct: 5, attempts: 6, maxLevel: 2, avgMs: 900,
+      mode: "mixed", adaptive: true, durationSec: 60, score, correct: 30, attempts: 32, maxLevel: 2, avgMs: 900,
     });
     const first = await request(app).post("/api/results/practice").set(auth).send(sprint(40));
     expect(first.body).toMatchObject({ previousBest: null, newBest: true });

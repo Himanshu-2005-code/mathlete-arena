@@ -242,6 +242,15 @@ export function createApp(db: Db) {
     if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
     const r = parsed.data;
     if (r.correct > r.attempts) return void res.status(400).json({ error: "correct cannot exceed attempts" });
+    // Each right answer is worth its level in points, so a sprint can't score
+    // more than correct × highest level. Nobody types more than ~5 answers a
+    // second either.
+    if (r.score > r.correct * r.maxLevel) {
+      return void res.status(400).json({ error: "That score doesn't match the answers given" });
+    }
+    if (r.correct > r.durationSec * 5) {
+      return void res.status(400).json({ error: "More answers than the sprint allows" });
+    }
     const userId = (req as AuthedRequest).userId;
     const prev = db
       .prepare(
