@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/lib/auth";
 import { TopBar } from "@/components/TopBar";
+import { SessionNotice } from "@/components/SessionNotice";
 import "./globals.css";
 import "./hud.css";
 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </a>
           <div className="shell">
             <TopBar />
+            <SessionNotice />
             <main id="main" tabIndex={-1}>
               {children}
             </main>

@@ -41,6 +41,9 @@ export function setToken(token: string | null) {
   }
 }
 
+/** Fired once when the server rejects our saved token (expired or account gone). */
+export const SESSION_EXPIRED_EVENT = "matik:session-expired";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -66,6 +69,13 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new ApiError("Can't reach the game server. Check that it's running.", 0);
   }
   const body = await res.json().catch(() => ({}));
+  // A 401 on a request that carried a token means the session is over: drop
+  // the token and let the app sign out once, instead of every call failing.
+  if (res.status === 401 && token && getToken() === token) {
+    setToken(null);
+    if (typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    throw new ApiError("Your session has expired. Sign in again to keep playing.", 401);
+  }
   if (!res.ok) throw new ApiError(body.error ?? `Request failed (${res.status})`, res.status);
   return body as T;
 }
