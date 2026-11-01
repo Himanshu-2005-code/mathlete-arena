@@ -34,7 +34,7 @@ import { isReservedName } from "./bots";
 import { dailyStreak, registerCompetitionRoutes } from "./compete";
 import { answerExpressions, answerGrid, answerPath, arcadeGame, puzzleKind } from "./schemas";
 import rateLimit from "express-rate-limit";
-import { AUTH_RATE_LIMIT, LOG_REQUESTS, TRUST_PROXY } from "./config";
+import { AUTH_RATE_LIMIT, LOG_REQUESTS, TRUST_PROXY, WRITE_RATE_LIMIT } from "./config";
 import type { Db } from "./db";
 import { APP_VERSION } from "./version";
 
@@ -122,6 +122,17 @@ export function createApp(db: Db) {
       message: { error: "Too many attempts. Try again in a few minutes." },
     }),
   );
+  // Cap how fast one address can submit scores. A real player finishes a game
+  // every few seconds at most; this only stops scripts flooding the boards.
+  const writeLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: WRITE_RATE_LIMIT,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    skip: (req) => req.method !== "POST",
+    message: { error: "You're submitting results too quickly. Wait a moment and try again." },
+  });
+  app.use(["/api/results", "/api/arcade", "/api/daily"], writeLimiter);
   app.use(express.json({ limit: "32kb" }));
 
   const findByName = db.prepare<[string], UserRow>("SELECT * FROM users WHERE username = ?");

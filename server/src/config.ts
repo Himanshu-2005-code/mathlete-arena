@@ -40,6 +40,9 @@ export const BOT_AFTER_SECONDS = Number(process.env.BOT_AFTER_SECONDS ?? 10);
 /** Sign-in and sign-up attempts allowed per address every 15 minutes. */
 export const AUTH_RATE_LIMIT = Number(process.env.AUTH_RATE_LIMIT ?? 30);
 
+/** Score submissions (sprints, puzzles, daily, arcade) allowed per address each minute. */
+export const WRITE_RATE_LIMIT = Number(process.env.WRITE_RATE_LIMIT ?? 60);
+
 /** Trust the hosting platform's proxy for client addresses (on by default in production). */
 export const TRUST_PROXY = (process.env.TRUST_PROXY ?? (process.env.NODE_ENV === "production" ? "1" : "0")) === "1";
 

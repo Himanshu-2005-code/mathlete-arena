@@ -91,6 +91,7 @@ npm start         # run the built app and the server
 | `DB_PATH` | server | `server/data/matik.db` |
 | `DAILY_UTC_OFFSET_MIN` | server | `330` (daily challenge rolls over at midnight IST) |
 | `AUTH_RATE_LIMIT` | server | `30` (sign-in and sign-up attempts per address every 15 minutes) |
+| `WRITE_RATE_LIMIT` | server | `60` (score submissions per address per minute: sprints, puzzles, daily and arcade) |
 | `TRUST_PROXY` | server | `1` in production (read client addresses from the host's proxy for rate limiting) |
 | `BOT_AFTER_SECONDS` | server | `10` (seconds in the queue before a computer opponent steps in; `0` turns bots off) |
 | `SERVE_WEB` | server | unset (set to `1` by `npm run start:prod` so one server serves the site too) |

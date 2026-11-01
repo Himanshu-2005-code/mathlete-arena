@@ -234,3 +234,18 @@ describe("leaderboard rank outside the top 50", () => {
     expect(mine.me.uid).toBeUndefined();
   });
 });
+
+describe("score submission rate limit", () => {
+  it("turns away a flood of submissions from one address", async () => {
+    const app = setup();
+    const auth = { Authorization: `Bearer ${await register(app)}` };
+    const statuses: number[] = [];
+    for (let i = 0; i < 65; i++) {
+      statuses.push((await request(app).post("/api/arcade").set(auth).send({ game: "memory", score: 3 })).status);
+    }
+    expect(statuses.slice(0, 60).every((s) => s === 201 || s === 200)).toBe(true);
+    expect(statuses.slice(60).every((s) => s === 429)).toBe(true);
+    // Reading isn't limited.
+    expect((await request(app).get("/api/daily")).status).toBe(200);
+  });
+});
