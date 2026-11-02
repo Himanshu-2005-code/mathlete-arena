@@ -126,6 +126,18 @@ export function openDb(file = DB_PATH) {
   if (!cols.some((c) => c.name === "is_bot")) {
     db.exec("ALTER TABLE users ADD COLUMN is_bot INTEGER NOT NULL DEFAULT 0");
   }
+
+  // Indexes for the hot reads, created after the migrations above so they
+  // survive any table rebuild:
+  // - daily leaderboards (one kind, one day) and the weekly board (one kind,
+  //   a range of days) both use (kind, day);
+  // - profiles, player pages and arcade saves look up one player's arcade bests;
+  // - practice personal bests look up one player's sprints by mode.
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_daily_kind_day ON daily_results(kind, day);
+    CREATE INDEX IF NOT EXISTS idx_arcade_user ON arcade_results(user_id, game, score DESC);
+    CREATE INDEX IF NOT EXISTS idx_sessions_user_kind_mode ON sessions(user_id, kind, mode, duration_sec);
+  `);
   return db;
 }
 
