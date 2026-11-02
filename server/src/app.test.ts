@@ -66,6 +66,26 @@ describe("auth", () => {
   });
 });
 
+describe("password length", () => {
+  it("refuses new passwords bcrypt would truncate, counting bytes not letters", async () => {
+    const app = setup();
+    const long = "a".repeat(73);
+    const r1 = await request(app).post("/api/auth/register").send({ username: "longpw", password: long });
+    expect(r1.status).toBe(400);
+    expect(r1.body.error).toMatch(/72 bytes/);
+    // 24 three-byte characters is 72 bytes: allowed. 25 is 75: refused.
+    expect((await request(app).post("/api/auth/register").send({ username: "hindi1", password: "क".repeat(24) })).status).toBe(201);
+    expect((await request(app).post("/api/auth/register").send({ username: "hindi2", password: "क".repeat(25) })).status).toBe(400);
+    expect((await request(app).post("/api/auth/register").send({ username: "short", password: "abc" })).status).toBe(400);
+    const token = await register(app, "changer");
+    const change = await request(app)
+      .post("/api/auth/password")
+      .set({ Authorization: `Bearer ${token}` })
+      .send({ current: "secret123", next: long });
+    expect(change.status).toBe(400);
+  });
+});
+
 describe("password change", () => {
   it("needs the current password and then accepts the new one", async () => {
     const app = setup();

@@ -68,11 +68,12 @@ export default function AuthPage() {
             type="password"
             className="text-input"
             autoComplete={isSignIn ? "current-password" : "new-password"}
+            maxLength={isSignIn ? 100 : 72}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          {!isSignIn && <p className="hint">At least 6 characters.</p>}
+          {!isSignIn && <p className="hint">6 to 72 characters.</p>}
         </div>
 
         {error && (

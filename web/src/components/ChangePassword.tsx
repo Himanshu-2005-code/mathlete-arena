@@ -75,9 +75,10 @@ export function ChangePassword() {
               value={next}
               onChange={(e) => setNext(e.target.value)}
               minLength={6}
+              maxLength={72}
               required
             />
-            <p className="hint">At least 6 characters.</p>
+            <p className="hint">6 to 72 characters.</p>
           </div>
           {error && (
             <p className="error" role="alert">

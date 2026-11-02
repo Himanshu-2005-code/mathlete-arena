@@ -45,12 +45,22 @@ const credentials = z.object({
     .min(3, "Username must be at least 3 characters")
     .max(20, "Username must be at most 20 characters")
     .regex(/^[A-Za-z0-9_]+$/, "Use letters, numbers and underscores only"),
-  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  password: z.string().min(1).max(100),
 });
+
+// bcrypt only reads the first 72 bytes of a password, so anything longer would
+// silently match other passwords sharing those bytes. New passwords must fit.
+const newPassword = (label: string) =>
+  z
+    .string()
+    .min(6, `${label} must be at least 6 characters`)
+    .refine((pw) => Buffer.byteLength(pw, "utf8") <= 72, `${label} must be at most 72 bytes (about 72 letters)`);
+
+const newCredentials = credentials.extend({ password: newPassword("Password") });
 
 const passwordChange = z.object({
   current: z.string().min(1, "Enter your current password").max(100),
-  next: z.string().min(6, "New password must be at least 6 characters").max(100),
+  next: newPassword("New password"),
 });
 
 const practiceResult = z.object({
@@ -153,7 +163,7 @@ export function createApp(db: Db) {
   });
 
   app.post("/api/auth/register", async (req, res) => {
-    const parsed = credentials.safeParse(req.body);
+    const parsed = newCredentials.safeParse(req.body);
     if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
     const { username, password } = parsed.data;
     if (isReservedName(username)) {
