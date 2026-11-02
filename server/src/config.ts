@@ -31,6 +31,13 @@ export const corsOrigin = (origin: string | undefined, cb: (err: Error | null, o
   cb(null, isAllowedOrigin(origin));
 export const DB_PATH = process.env.DB_PATH ?? path.resolve(here, "../data/matik.db");
 
+/** Where database backups go (`npm run backup`, and automatic ones when BACKUP_EVERY_HOURS is set). */
+export const BACKUP_DIR = process.env.BACKUP_DIR ?? path.join(path.dirname(DB_PATH), "backups");
+/** How many backups to keep; older ones are deleted. */
+export const BACKUP_KEEP = Number(process.env.BACKUP_KEEP ?? 7);
+/** Back up automatically this often while the server runs; 0 (default) turns it off. */
+export const BACKUP_EVERY_HOURS = Number(process.env.BACKUP_EVERY_HOURS ?? 0);
+
 /** Daily challenges roll over at midnight in this UTC offset (default IST). */
 export const DAILY_UTC_OFFSET_MIN = Number(process.env.DAILY_UTC_OFFSET_MIN ?? 330);
 

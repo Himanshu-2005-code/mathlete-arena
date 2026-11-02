@@ -2,7 +2,8 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "./app";
-import { BOT_AFTER_SECONDS, PORT, SERVE_WEB } from "./config";
+import { BACKUP_DIR, BACKUP_EVERY_HOURS, BACKUP_KEEP, BOT_AFTER_SECONDS, PORT, SERVE_WEB } from "./config";
+import { scheduleBackups } from "./backup";
 import { openDb } from "./db";
 import { attachSocket } from "./socket";
 
@@ -23,6 +24,9 @@ if (SERVE_WEB) {
   app.all("*", (req, res) => handle(req, res));
 }
 
+const stopBackups =
+  BACKUP_EVERY_HOURS > 0 ? scheduleBackups(db, BACKUP_DIR, BACKUP_EVERY_HOURS, BACKUP_KEEP) : () => {};
+
 server.listen(PORT, () => {
   console.log(`[matik] ${SERVE_WEB ? "game" : "API + sockets"} on http://localhost:${PORT}`);
 });
@@ -36,6 +40,7 @@ function shutdown(signal: string) {
   console.log(`[matik] ${signal}: shutting down`);
   const force = setTimeout(() => process.exit(1), 10_000);
   force.unref();
+  stopBackups();
   duels.close();
   io.close(() => {
     server.close(() => {

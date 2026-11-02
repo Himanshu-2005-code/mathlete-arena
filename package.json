@@ -15,7 +15,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit",
     "start:prod": "SERVE_WEB=1 NODE_ENV=production npm run start -w server",
-    "build:prod": "NEXT_PUBLIC_API_URL= npm run build -w web"
+    "build:prod": "NEXT_PUBLIC_API_URL= npm run build -w web",
+    "backup": "npm run backup -w server"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",
