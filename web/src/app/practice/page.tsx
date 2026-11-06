@@ -123,6 +123,25 @@ export default function PracticePage() {
     return () => clearTimeout(id);
   }, [phase, count, seconds, nextQuestion]);
 
+  // On the results screen, Enter starts another sprint with the same settings,
+  // unless focus is on a button or link (Enter already activates those).
+  // The first second is ignored, so an answer typed as time ran out doesn't
+  // immediately start the next sprint.
+  useEffect(() => {
+    if (phase !== "done") return;
+    const readyAt = performance.now() + 1000;
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement;
+      if (e.key !== "Enter" || e.repeat || performance.now() < readyAt) return;
+      if (el && /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
+      e.preventDefault();
+      start();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
   // Countdown.
   useEffect(() => {
     if (phase !== "playing") return;
@@ -417,7 +436,7 @@ export default function PracticePage() {
       )}
 
       <div className="actions">
-        <button type="button" className="btn" onClick={start}>
+        <button type="button" className="btn" onClick={start} title="Or press Enter">
           Go again
         </button>
         <button type="button" className="btn ghost" onClick={() => setPhase("setup")}>
