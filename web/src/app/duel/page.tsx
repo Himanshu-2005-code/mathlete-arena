@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Radar } from "@/components/Radar";
+import { ShareInvite } from "@/components/ShareInvite";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type DuelEndReason,
@@ -392,13 +393,7 @@ export default function DuelPage() {
           <p className="code num">{phase.code}</p>
           <p className="invite">
             <input className="text-input" readOnly value={inviteLink} aria-label="Invite link" onFocus={(e) => e.target.select()} />
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => navigator.clipboard?.writeText(inviteLink).catch(() => {})}
-            >
-              Copy link
-            </button>
+            <ShareInvite link={inviteLink} code={phase.code} />
           </p>
           <div className="actions">
             <button
