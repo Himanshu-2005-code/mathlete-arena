@@ -9,7 +9,7 @@ export const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 /**
  * Sites allowed to call the API and open duel sockets: a comma-separated
  * list, where an entry may start with "*." to cover subdomains, e.g.
- * "https://matik.vercel.app,https://*.vercel.app" for Vercel previews too.
+ * "https://mathlete.vercel.app,https://*.vercel.app" for Vercel previews too.
  */
 export function isAllowedOrigin(origin: string | undefined, allowed = WEB_ORIGIN): boolean {
   if (!origin) return true; // same-origin requests and non-browser clients
@@ -29,7 +29,7 @@ export function isAllowedOrigin(origin: string | undefined, allowed = WEB_ORIGIN
 /** The cors/socket.io origin option built from WEB_ORIGIN. */
 export const corsOrigin = (origin: string | undefined, cb: (err: Error | null, ok?: boolean) => void) =>
   cb(null, isAllowedOrigin(origin));
-export const DB_PATH = process.env.DB_PATH ?? path.resolve(here, "../data/matik.db");
+export const DB_PATH = process.env.DB_PATH ?? path.resolve(here, "../data/mathlete.db");
 
 /** Where database backups go (`npm run backup`, and automatic ones when BACKUP_EVERY_HOURS is set). */
 export const BACKUP_DIR = process.env.BACKUP_DIR ?? path.join(path.dirname(DB_PATH), "backups");
@@ -66,5 +66,5 @@ if (JWT_SECRET === DEV_SECRET) {
   if (process.env.NODE_ENV === "production") {
     throw new Error("Set JWT_SECRET in production.");
   }
-  console.warn("[matik] JWT_SECRET not set; using an insecure development secret.");
+  console.warn("[mathlete] JWT_SECRET not set; using an insecure development secret.");
 }

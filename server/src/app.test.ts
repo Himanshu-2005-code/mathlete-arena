@@ -1,6 +1,6 @@
 import request from "supertest";
 import { describe, expect, it } from "vitest";
-import { generateCrossMath } from "@matik/shared";
+import { generateCrossMath } from "@mathlete/shared";
 import { createApp } from "./app";
 import { openDb } from "./db";
 
@@ -161,7 +161,7 @@ describe("data export", () => {
     await request(app).post("/api/arcade").set(auth).send({ game: "memory", score: 6 });
     const res = await request(app).get("/api/me/export").set(auth);
     expect(res.status).toBe(200);
-    expect(res.headers["content-disposition"]).toContain("matik-himanshu.json");
+    expect(res.headers["content-disposition"]).toContain("mathlete-himanshu.json");
     expect(res.body.account.username).toBe("himanshu");
     expect(res.body.arcade).toMatchObject([{ game: "memory", score: 6 }]);
     expect(JSON.stringify(res.body)).not.toContain("password");

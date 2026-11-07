@@ -20,7 +20,7 @@ import {
   memoryNumber,
   memoryShowMs,
   randomSeed,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { Choices } from "@/components/Choices";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";

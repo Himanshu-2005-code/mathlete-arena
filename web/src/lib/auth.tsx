@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { PublicUser } from "@matik/shared";
+import type { PublicUser } from "@mathlete/shared";
 import { SESSION_EXPIRED_EVENT, api, getToken, setToken } from "./api";
 import { closeSocket } from "./socket";
 

@@ -5,7 +5,7 @@
 # about a minute to wake it). Use render.starter.yaml (Starter plan + disk) to keep data.
 services:
   - type: web
-    name: matik
+    name: mathlete-arena
     runtime: docker
     plan: free
     healthCheckPath: /api/health

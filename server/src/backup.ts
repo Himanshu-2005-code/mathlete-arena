@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Db } from "./db";
 
-const PREFIX = "matik-";
+const PREFIX = "mathlete-";
 const SUFFIX = ".db";
 
 /** "2026-11-02T17-05-09Z": sortable, and safe in file names everywhere. */
@@ -42,8 +42,8 @@ function pruneBackups(dir: string, keep: number) {
 export function scheduleBackups(db: Db, dir: string, everyHours: number, keep: number): () => void {
   const run = () =>
     backupDb(db, dir, keep)
-      .then((f) => console.log(`[matik] backup written: ${f}`))
-      .catch((err) => console.error("[matik] backup failed:", err));
+      .then((f) => console.log(`[mathlete] backup written: ${f}`))
+      .catch((err) => console.error("[mathlete] backup failed:", err));
   void run();
   const timer = setInterval(run, everyHours * 3_600_000);
   timer.unref();

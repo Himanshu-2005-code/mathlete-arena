@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { DailyResult } from "@matik/shared";
+import type { DailyResult } from "@mathlete/shared";
 import { formatTime } from "./CrossMathBoard";
 
 /** Copies a short, spoiler-free summary of today's results. */

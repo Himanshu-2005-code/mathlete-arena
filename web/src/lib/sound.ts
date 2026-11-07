@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 /** Short synthesized blips for right and wrong answers; no audio files needed. */
 
-const KEY = "matik.sound";
+const KEY = "mathlete.sound";
 let ctx: AudioContext | null = null;
 const listeners = new Set<(on: boolean) => void>();
 

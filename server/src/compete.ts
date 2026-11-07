@@ -24,7 +24,7 @@ import {
   pointsFor,
   sequenceQuestion,
   toPublic,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { answerExpressions, answerGrid, answerPath, puzzleKind } from "./schemas";
 import { type AuthedRequest, requireAuth, verifyToken } from "./auth";
 import { DAILY_UTC_OFFSET_MIN } from "./config";

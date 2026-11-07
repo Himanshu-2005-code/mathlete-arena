@@ -12,7 +12,7 @@ import {
   eloUpdate,
   randomSeed,
   sequenceQuestion,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import type { UserRow } from "./auth";
 import { BOT_MISS_CHANCE, botThinkMs, ensureBots, pickBot } from "./bots";
 import type { Db } from "./db";

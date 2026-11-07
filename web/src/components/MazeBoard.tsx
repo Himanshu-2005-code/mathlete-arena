@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { type MazeCell, type PublicMaze, checkMaze, evaluateMazePath } from "@matik/shared";
+import { type MazeCell, type PublicMaze, checkMaze, evaluateMazePath } from "@mathlete/shared";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { formatTime } from "./CrossMathBoard";
 import { useStopwatch } from "./useStopwatch";

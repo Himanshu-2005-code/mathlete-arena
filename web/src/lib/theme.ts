@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
  * "dark" are the original squared-paper notebook, by day and by night.
  */
 export type Theme = "hud" | "light" | "dark";
-const KEY = "matik.theme";
+const KEY = "mathlete.theme";
 const ORDER: Theme[] = ["hud", "light", "dark"];
 export const THEME_LABELS: Record<Theme, string> = { hud: "HUD", light: "Paper", dark: "Paper night" };
 

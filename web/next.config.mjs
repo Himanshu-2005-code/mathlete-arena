@@ -4,12 +4,12 @@
 // build must be told where. Without it the site would try localhost.
 if (process.env.VERCEL && !process.env.NEXT_PUBLIC_API_URL) {
   throw new Error(
-    "Set NEXT_PUBLIC_API_URL in the Vercel project to your game server's address, e.g. https://matik.onrender.com",
+    "Set NEXT_PUBLIC_API_URL in the Vercel project to your game server's address, e.g. https://mathlete-arena.onrender.com",
   );
 }
 
 const nextConfig = {
-  transpilePackages: ["@matik/shared"],
+  transpilePackages: ["@mathlete/shared"],
 };
 
 export default nextConfig;

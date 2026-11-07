@@ -10,7 +10,7 @@ import {
   type DuelPlayerInfo,
   type Question,
   sequenceQuestion,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { Tally } from "@/components/Tally";
 import { useAuth } from "@/lib/auth";
 import { type GameSocket, getSocket } from "@/lib/socket";

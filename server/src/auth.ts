@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { NextFunction, Request, Response } from "express";
-import type { PublicUser } from "@matik/shared";
+import type { PublicUser } from "@mathlete/shared";
 import { JWT_SECRET } from "./config";
 
 export interface UserRow {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { type Op, type PublicPuzzle, checkCrossMath } from "@matik/shared";
+import { type Op, type PublicPuzzle, checkCrossMath } from "@mathlete/shared";
 
 type Key = string;
 const key = (r: number, c: number): Key => `${r},${c}`;

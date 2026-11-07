@@ -14,7 +14,7 @@ import {
   pointsFor,
   puzzleInfo,
   sequenceQuestion,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { formatTime } from "@/components/CrossMathBoard";
 import { PuzzlePlayer, type PuzzleSolved } from "@/components/PuzzlePlayer";
 import { api } from "@/lib/api";

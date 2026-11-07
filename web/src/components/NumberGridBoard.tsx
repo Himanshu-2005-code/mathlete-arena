@@ -13,7 +13,7 @@ import {
   checkKiller,
   checkSudoku,
   gridSolution,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { formatTime } from "./CrossMathBoard";
 import { useStopwatch } from "./useStopwatch";

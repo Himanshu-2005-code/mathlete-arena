@@ -9,14 +9,14 @@ import {
   generatePublicPuzzle,
   puzzleInfo,
   randomSeed,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { Choices } from "@/components/Choices";
 import { formatTime } from "@/components/CrossMathBoard";
 import { PuzzlePlayer, type PuzzleSolved } from "@/components/PuzzlePlayer";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
-const CHOICE_KEY = "matik.puzzle";
+const CHOICE_KEY = "mathlete.puzzle";
 
 export default function PuzzlesPage() {
   const { user } = useAuth();

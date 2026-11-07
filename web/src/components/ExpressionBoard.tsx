@@ -8,7 +8,7 @@ import {
   checkMake24Hand,
   showFrac,
   tryEvaluate,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { playCorrect, playWrong } from "@/lib/sound";
 import { formatTime } from "./CrossMathBoard";
 import { useStopwatch } from "./useStopwatch";

@@ -92,7 +92,7 @@ npm start         # run the built app and the server
 | `PORT` | server | `4000` |
 | `JWT_SECRET` | server | insecure dev secret (required when `NODE_ENV=production`) |
 | `WEB_ORIGIN` | server | `http://localhost:3000`; sites allowed to call the API and open sockets, comma-separated, `https://*.vercel.app` style wildcards allowed |
-| `DB_PATH` | server | `server/data/matik.db` |
+| `DB_PATH` | server | `server/data/mathlete.db` |
 | `DAILY_UTC_OFFSET_MIN` | server | `330` (daily challenge rolls over at midnight IST) |
 | `AUTH_RATE_LIMIT` | server | `30` (sign-in and sign-up attempts per address every 15 minutes) |
 | `WRITE_RATE_LIMIT` | server | `60` (score submissions per address per minute: sprints, puzzles, daily and arcade) |
@@ -140,12 +140,12 @@ The disk needs a paid instance (Starter). On the free plan the database resets o
 
 Vercel runs sites as short-lived functions, so it can host the Next.js site but not the game server: duels need a long-lived Socket.io connection and the database needs a disk. Run the server on Render (above) and the site on Vercel:
 
-1. Deploy the server on Render first and note its address, e.g. `https://matik.onrender.com`.
+1. Deploy the server on Render first and note its address, e.g. `https://mathlete-arena.onrender.com`.
 2. In Vercel: Add New > Project, import this repo, and set **Root Directory** to `web`. `web/vercel.json` installs the whole workspace and builds the site.
 3. Add these environment variables in the Vercel project, then deploy:
    - `NEXT_PUBLIC_API_URL` = the Render address (the build stops with a clear error if it's missing)
-   - `SITE_URL` = your Vercel address, e.g. `https://matik.vercel.app` (for the sitemap)
-4. On Render, set `WEB_ORIGIN` to the Vercel address so the server accepts its requests. Add `https://*.vercel.app` to the list too if you want preview deployments to work: `https://matik.vercel.app,https://*.vercel.app`.
+   - `SITE_URL` = your Vercel address, e.g. `https://mathlete.vercel.app` (for the sitemap)
+4. On Render, set `WEB_ORIGIN` to the Vercel address so the server accepts its requests. Add `https://*.vercel.app` to the list too if you want preview deployments to work: `https://mathlete.vercel.app,https://*.vercel.app`.
 
 Sign-in uses a token in the request header rather than cookies, so the site and the server can live on different domains. The Render address still serves the full game on its own as well.
 

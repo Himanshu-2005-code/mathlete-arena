@@ -20,7 +20,7 @@ WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=8080 \
-    DB_PATH=/data/matik.db
+    DB_PATH=/data/mathlete.db
 COPY --from=build /app /app
 RUN mkdir -p /data
 VOLUME /data

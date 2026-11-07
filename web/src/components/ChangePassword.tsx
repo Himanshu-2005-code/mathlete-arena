@@ -177,7 +177,7 @@ function ExportData() {
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
       const a = document.createElement("a");
       a.href = url;
-      a.download = `matik-${user?.username ?? "data"}.json`;
+      a.download = `mathlete-${user?.username ?? "data"}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setState("");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { AnyPublicPuzzle, PuzzleAnswer } from "@matik/shared";
+import type { AnyPublicPuzzle, PuzzleAnswer } from "@mathlete/shared";
 import { CrossMathBoard, type SolvedInfo } from "./CrossMathBoard";
 import { MazeBoard, type MazeSolved } from "./MazeBoard";
 import { type GridSolved, NumberGridBoard } from "./NumberGridBoard";

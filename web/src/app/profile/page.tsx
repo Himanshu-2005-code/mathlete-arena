@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ARCADE_GAMES, PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@matik/shared";
+import { ARCADE_GAMES, PRACTICE_MODES, PUZZLE_KINDS, type Stats } from "@mathlete/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ChangePassword } from "@/components/ChangePassword";

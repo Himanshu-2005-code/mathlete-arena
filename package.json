@@ -1,5 +1,5 @@
 {
-  "name": "matik-game",
+  "name": "mathlete-arena",
   "private": true,
   "version": "0.1.0",
   "description": "A Matiks-style competitive mental math game: practice sprints, cross-math puzzles, and (soon) real-time duels.",

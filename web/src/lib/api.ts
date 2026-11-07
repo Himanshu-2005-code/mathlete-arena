@@ -1,3 +1,4 @@
+import { migrateLegacyStorage } from "./legacy";
 import type {
   PlayerProfile,
   ArcadeGame,
@@ -15,14 +16,17 @@ import type {
   PublicUser,
   PuzzleResultInput,
   Stats,
-} from "@matik/shared";
+} from "@mathlete/shared";
 
 /** Where the game server lives. Set to "" in production, where one server serves everything. */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 type Streak = { current: number; best: number };
 
-const TOKEN_KEY = "matik.token";
+// Runs once when the app loads, before anything reads the saved token.
+migrateLegacyStorage();
+
+const TOKEN_KEY = "mathlete.token";
 
 export function getToken(): string | null {
   try {
@@ -42,7 +46,7 @@ export function setToken(token: string | null) {
 }
 
 /** Fired once when the server rejects our saved token (expired or account gone). */
-export const SESSION_EXPIRED_EVENT = "matik:session-expired";
+export const SESSION_EXPIRED_EVENT = "mathlete:session-expired";
 
 export class ApiError extends Error {
   constructor(

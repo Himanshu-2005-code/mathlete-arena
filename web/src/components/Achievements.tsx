@@ -1,4 +1,4 @@
-import { type Stats, achievements } from "@matik/shared";
+import { type Stats, achievements } from "@mathlete/shared";
 
 export function Achievements({ stats }: { stats: Stats }) {
   const list = achievements(stats);

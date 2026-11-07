@@ -1,7 +1,7 @@
 "use client";
 
 import { type Socket, io } from "socket.io-client";
-import type { ClientToServerEvents, ServerToClientEvents } from "@matik/shared";
+import type { ClientToServerEvents, ServerToClientEvents } from "@mathlete/shared";
 import { API_URL, getToken } from "./api";
 
 export type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

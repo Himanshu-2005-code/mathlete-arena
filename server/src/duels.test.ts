@@ -14,7 +14,7 @@ import {
   generateMaze,
   generateSudoku,
   sequenceQuestion,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { createApp } from "./app";
 import { type DuelOptions, allowedGap } from "./duels";
 import { openDb } from "./db";
@@ -409,7 +409,7 @@ describe("new puzzle games", () => {
     const fs = await import("node:fs");
     const os = await import("node:os");
     const path = await import("node:path");
-    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "matik-")), "old.db");
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mathlete-")), "old.db");
     const old = new Database(file);
     old.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
       password_hash TEXT NOT NULL, rating INTEGER NOT NULL DEFAULT 1000, created_at TEXT NOT NULL DEFAULT (datetime('now')));
@@ -537,7 +537,7 @@ describe("Killer Sudoku, Futoshiki and blitz", () => {
     const fs = await import("node:fs");
     const os = await import("node:os");
     const path = await import("node:path");
-    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "matik-")), "arcade.db");
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mathlete-")), "arcade.db");
     const old = new Database(file);
     old.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
       password_hash TEXT NOT NULL, rating INTEGER NOT NULL DEFAULT 1000, created_at TEXT NOT NULL DEFAULT (datetime('now')));

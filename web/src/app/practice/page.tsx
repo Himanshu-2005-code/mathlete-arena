@@ -13,7 +13,7 @@ import {
   generateQuestion,
   pointsFor,
   randomSeed,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import { Choices } from "@/components/Choices";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -31,7 +31,7 @@ interface Tally {
 
 const emptyTally = (level: number): Tally => ({ score: 0, correct: 0, attempts: 0, maxLevel: level, totalMs: 0 });
 
-const SETTINGS_KEY = "matik.practice";
+const SETTINGS_KEY = "mathlete.practice";
 
 export default function PracticePage() {
   const { user } = useAuth();

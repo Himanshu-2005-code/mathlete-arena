@@ -1,6 +1,6 @@
 import type { Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
-import type { ClientToServerEvents, ServerToClientEvents } from "@matik/shared";
+import type { ClientToServerEvents, ServerToClientEvents } from "@mathlete/shared";
 import { verifyToken } from "./auth";
 import { corsOrigin } from "./config";
 import type { Db } from "./db";

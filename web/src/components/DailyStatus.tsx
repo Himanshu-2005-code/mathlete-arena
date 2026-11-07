@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { DAILY_EXTRA_KINDS, type DailyInfo } from "@matik/shared";
+import { DAILY_EXTRA_KINDS, type DailyInfo } from "@mathlete/shared";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 

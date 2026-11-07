@@ -28,7 +28,7 @@ const stopBackups =
   BACKUP_EVERY_HOURS > 0 ? scheduleBackups(db, BACKUP_DIR, BACKUP_EVERY_HOURS, BACKUP_KEEP) : () => {};
 
 server.listen(PORT, () => {
-  console.log(`[matik] ${SERVE_WEB ? "game" : "API + sockets"} on http://localhost:${PORT}`);
+  console.log(`[mathlete] ${SERVE_WEB ? "game" : "API + sockets"} on http://localhost:${PORT}`);
 });
 
 // Hosts like Render send SIGTERM before replacing the server. Stop taking new
@@ -37,7 +37,7 @@ let stopping = false;
 function shutdown(signal: string) {
   if (stopping) return;
   stopping = true;
-  console.log(`[matik] ${signal}: shutting down`);
+  console.log(`[mathlete] ${signal}: shutting down`);
   const force = setTimeout(() => process.exit(1), 10_000);
   force.unref();
   stopBackups();

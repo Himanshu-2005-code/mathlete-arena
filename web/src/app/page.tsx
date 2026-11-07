@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { type Question, createRng, generateQuestion, randomSeed } from "@matik/shared";
+import { type Question, createRng, generateQuestion, randomSeed } from "@mathlete/shared";
 import { playCorrect } from "@/lib/sound";
 import { DailyStatus } from "@/components/DailyStatus";
 import { Ticker } from "@/components/Ticker";

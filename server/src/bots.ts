@@ -1,4 +1,4 @@
-import { sequenceLevel } from "@matik/shared";
+import { sequenceLevel } from "@mathlete/shared";
 import type { Db } from "./db";
 
 /**

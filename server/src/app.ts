@@ -19,7 +19,7 @@ import {
   verifyPuzzle,
   generateCrossMath,
   toPublic,
-} from "@matik/shared";
+} from "@mathlete/shared";
 import {
   type AuthedRequest,
   type UserRow,
@@ -115,7 +115,7 @@ export function createApp(db: Db) {
       const start = process.hrtime.bigint();
       res.on("finish", () => {
         const ms = Number(process.hrtime.bigint() - start) / 1e6;
-        console.log(`[matik] ${req.method} ${req.baseUrl}${req.path} ${res.statusCode} ${ms.toFixed(1)}ms`);
+        console.log(`[mathlete] ${req.method} ${req.baseUrl}${req.path} ${res.statusCode} ${ms.toFixed(1)}ms`);
       });
       next();
     });
@@ -248,7 +248,7 @@ export function createApp(db: Db) {
         )
         .all({ id: user.id }),
     };
-    res.setHeader("Content-Disposition", `attachment; filename="matik-${user.username}.json"`);
+    res.setHeader("Content-Disposition", `attachment; filename="mathlete-${user.username}.json"`);
     res.json(data);
   });
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Leaderboard, LeaderboardKind } from "@matik/shared";
+import type { Leaderboard, LeaderboardKind } from "@mathlete/shared";
 import { Choices } from "@/components/Choices";
 import { EmptyState } from "@/components/EmptyState";
 import { formatTime } from "@/components/CrossMathBoard";
