@@ -1942,3 +1942,39 @@ main:focus {
   opacity: 0.6;
   pointer-events: none;
 }
+
+/* ---------- Footer and text pages ---------- */
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 56px 0 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--grid);
+  font-size: 0.9rem;
+}
+
+.site-footer a {
+  color: var(--pencil);
+}
+
+.site-footer a:hover {
+  color: var(--ink);
+}
+
+.prose {
+  max-width: 68ch;
+}
+
+.prose h2 {
+  margin-top: 28px;
+}
+
+.prose ul {
+  padding-left: 1.2em;
+}
+
+.prose li {
+  margin: 6px 0;
+}

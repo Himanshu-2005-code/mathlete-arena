@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import { AuthProvider } from "@/lib/auth";
 import { TopBar } from "@/components/TopBar";
 import { SessionNotice } from "@/components/SessionNotice";
@@ -47,6 +48,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main id="main" tabIndex={-1}>
               {children}
             </main>
+            <footer className="site-footer">
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms</Link>
+              <a href="https://github.com/Himanshu-2005-code/mathlete-arena">GitHub</a>
+            </footer>
           </div>
         </AuthProvider>
       </body>

@@ -1165,3 +1165,17 @@
 :root:not([data-theme]) .or-line::after {
   background: var(--grid-strong);
 }
+
+/* ---------- Footer ---------- */
+
+:root:not([data-theme]) .site-footer {
+  border-top-color: var(--grid-strong);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+:root:not([data-theme]) .site-footer a:hover {
+  color: var(--accent);
+}
