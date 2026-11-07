@@ -114,6 +114,10 @@ JWT_SECRET=some-long-random-string npm run start:prod
 
 `start:prod` refuses to start without `JWT_SECRET`. Sign-in and sign-up are rate limited per address, and every response carries basic security headers. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
 
+### Render free plan
+
+`render.free.yaml` is the same service on Render's free plan: choose it as the Blueprint path. It costs nothing, but free instances have no disk, so accounts and scores reset on every restart or deploy, and the service sleeps after 15 idle minutes. Switch to `render.yaml` when you want data to stick.
+
 ### Backups
 
 `npm run backup` copies the database at `DB_PATH` into `BACKUP_DIR` using SQLite's online backup, so it's safe while the game is running, and keeps the newest `BACKUP_KEEP` copies. Set `BACKUP_EVERY_HOURS` to have the server do it on a schedule (the Render blueprint backs up daily). A backup on the same disk protects against a bad deploy or a corrupted file, not against losing the disk, so download one now and then: each is a single `.db` file you can open with any SQLite tool. To restore, stop the server and copy a backup over `DB_PATH`.
