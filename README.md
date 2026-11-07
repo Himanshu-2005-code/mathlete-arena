@@ -116,7 +116,7 @@ JWT_SECRET=some-long-random-string npm run start:prod
 
 ### Render free plan
 
-`render.free.yaml` is the same service on Render's free plan: choose it as the Blueprint path. It costs nothing, but free instances have no disk, so accounts and scores reset on every restart or deploy, and the service sleeps after 15 idle minutes. Switch to `render.yaml` when you want data to stick.
+`render.yaml` (the default Blueprint) runs on Render's free plan. It costs nothing, but free instances have no disk, so accounts and scores reset on every restart or deploy, and the service sleeps after 15 idle minutes. Use `render.starter.yaml` as the Blueprint path (Starter plan, about $7/month, with a 1 GB disk) when you want data to stick.
 
 ### Backups
 

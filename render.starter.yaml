@@ -1,0 +1,28 @@
+# Render Blueprint, Starter plan with a disk so data survives deploys:
+# New > Blueprint, pick this repo, and set the Blueprint path to render.starter.yaml.
+services:
+  - type: web
+    name: matik
+    runtime: docker
+    # Disks need a paid instance. On the free plan, remove the disk block:
+    # the game still runs, but accounts and ratings reset on every deploy.
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: /data/matik.db
+      - key: BOT_AFTER_SECONDS
+        value: "10"
+      - key: DAILY_UTC_OFFSET_MIN
+        value: "330"
+      # Daily database backups on the same disk, keeping the last 7.
+      - key: BACKUP_EVERY_HOURS
+        value: "24"
+      - key: BACKUP_DIR
+        value: /data/backups
+    disk:
+      name: matik-data
+      mountPath: /data
+      sizeGB: 1
