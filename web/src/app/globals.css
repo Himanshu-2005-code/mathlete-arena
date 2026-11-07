@@ -1921,6 +1921,19 @@ main:focus {
   margin-top: 18px;
 }
 
+.google-signin-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+/* Google's button frame is a light-mode page. On our dark themes the
+   browser would paint an opaque white box behind it unless the frame is
+   told it is light too, which keeps its background transparent. */
+.google-signin-button iframe {
+  color-scheme: light;
+}
+
 .or-line {
   display: flex;
   align-items: center;

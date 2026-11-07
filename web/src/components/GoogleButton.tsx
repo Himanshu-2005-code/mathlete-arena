@@ -52,6 +52,33 @@ export function GoogleButton({ onDone, onError }: { onDone: () => void; onError:
   useEffect(() => {
     if (!clientId || !ref.current) return;
     let cancelled = false;
+    let ready = false;
+    let lastKey = "";
+    // Google renders a fixed-width iframe, so redraw it to match the form's
+    // width and the current theme whenever either changes.
+    const draw = () => {
+      const el = ref.current;
+      if (cancelled || !ready || !el || !window.google) return;
+      const light = document.documentElement.dataset.theme === "light";
+      const width = Math.round(Math.min(400, Math.max(200, el.clientWidth)));
+      const key = `${light}:${width}`;
+      if (key === lastKey) return;
+      lastKey = key;
+      el.replaceChildren();
+      window.google.accounts.id.renderButton(el, {
+        type: "standard",
+        theme: light ? "outline" : "filled_black",
+        size: "large",
+        text: "continue_with",
+        shape: "rectangular",
+        logo_alignment: "center",
+        width,
+      });
+    };
+    const resize = new ResizeObserver(draw);
+    resize.observe(ref.current);
+    const themeWatch = new MutationObserver(draw);
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     loadScript()
       .then(() => {
         if (cancelled || !ref.current || !window.google) return;
@@ -69,19 +96,14 @@ export function GoogleButton({ onDone, onError }: { onDone: () => void; onError:
             }
           },
         });
-        window.google.accounts.id.renderButton(ref.current, {
-          type: "standard",
-          theme: document.documentElement.dataset.theme === "light" ? "outline" : "filled_black",
-          size: "large",
-          text: "continue_with",
-          shape: "rectangular",
-          logo_alignment: "left",
-          width: 300,
-        });
+        ready = true;
+        draw();
       })
       .catch((e: Error) => fail.current(e.message));
     return () => {
       cancelled = true;
+      resize.disconnect();
+      themeWatch.disconnect();
     };
   }, [clientId, signInWithGoogle]);
 
@@ -91,7 +113,7 @@ export function GoogleButton({ onDone, onError }: { onDone: () => void; onError:
       <p className="or-line">
         <span>or</span>
       </p>
-      <div ref={ref} aria-busy={busy} />
+      <div ref={ref} className="google-signin-button" aria-busy={busy} />
     </div>
   );
 }
