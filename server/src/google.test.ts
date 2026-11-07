@@ -80,3 +80,24 @@ describe("usernameFromGoogle", () => {
     expect(usernameFromGoogle({ name: "A very long name for a person here" }, none).length).toBeLessThanOrEqual(20);
   });
 });
+
+describe("Changing username", () => {
+  it("renames the player, keeps their scores, and refuses taken or reserved names", async () => {
+    const app = setup();
+    const a = await request(app).post("/api/auth/google").send({ credential: cred("r-1") });
+    const auth = { Authorization: `Bearer ${a.body.token}` };
+    await request(app).post("/api/auth/register").send({ username: "taken_name", password: "secret123" });
+
+    const renamed = await request(app).post("/api/auth/username").set(auth).send({ username: "  Himu_99 " });
+    expect(renamed.status).toBe(200);
+    expect(renamed.body.user).toMatchObject({ id: a.body.user.id, username: "Himu_99" });
+    expect((await request(app).get("/api/me").set(auth)).body.user.username).toBe("Himu_99");
+    // Changing only the capitals of your own name is fine.
+    expect((await request(app).post("/api/auth/username").set(auth).send({ username: "himu_99" })).status).toBe(200);
+
+    expect((await request(app).post("/api/auth/username").set(auth).send({ username: "TAKEN_NAME" })).status).toBe(409);
+    expect((await request(app).post("/api/auth/username").set(auth).send({ username: "sneaky_bot" })).status).toBe(400);
+    expect((await request(app).post("/api/auth/username").set(auth).send({ username: "no spaces" })).status).toBe(400);
+    expect((await request(app).post("/api/auth/username").send({ username: "anon_name" })).status).toBe(401);
+  });
+});

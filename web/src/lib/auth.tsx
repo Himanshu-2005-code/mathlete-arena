@@ -10,11 +10,13 @@ interface AuthState {
   ready: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signUp: (username: string, password: string) => Promise<void>;
-  /** Sign in (or sign up) with the ID token from Google's button. */
-  signInWithGoogle: (credential: string) => Promise<void>;
+  /** Sign in (or sign up) with the ID token from Google's button. True if this created the account. */
+  signInWithGoogle: (credential: string) => Promise<boolean>;
   signOut: () => void;
   /** Re-fetch the signed-in user, e.g. after a duel changes their rating. */
   refresh: () => Promise<void>;
+  /** Change the signed-in player's username. */
+  rename: (username: string) => Promise<void>;
   /** True after the server ended the session; cleared by signing in or dismissing. */
   expired: boolean;
   dismissExpired: () => void;
@@ -74,12 +76,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(res.token);
     setUser(res.user);
     setExpired(false);
+    return Boolean(res.created);
   }, []);
 
   const signOut = useCallback(() => {
     setToken(null);
     setUser(null);
     closeSocket();
+  }, []);
+
+  const rename = useCallback(async (username: string) => {
+    const res = await api.changeUsername(username);
+    setUser(res.user);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -89,8 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, ready, signIn, signUp, signInWithGoogle, signOut, refresh, expired, dismissExpired }),
-    [user, ready, signIn, signUp, signInWithGoogle, signOut, refresh, expired, dismissExpired],
+    () => ({ user, ready, signIn, signUp, signInWithGoogle, signOut, refresh, rename, expired, dismissExpired }),
+    [user, ready, signIn, signUp, signInWithGoogle, signOut, refresh, rename, expired, dismissExpired],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

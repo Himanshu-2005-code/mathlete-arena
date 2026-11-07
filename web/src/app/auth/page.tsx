@@ -98,7 +98,7 @@ export default function AuthPage() {
             {isSignIn ? "I'm new here" : "I already have an account"}
           </button>
         </div>
-        <GoogleButton onDone={() => router.push("/profile")} onError={setError} />
+        <GoogleButton onDone={(created) => router.push(created ? "/profile?welcome=1#account" : "/profile")} onError={setError} />
       </form>
       <aside className="auth-aside" aria-label="What an account gives you">
         <h2>With an account</h2>

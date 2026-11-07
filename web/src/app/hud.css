@@ -324,6 +324,52 @@
   letter-spacing: 0.08em;
 }
 
+:root:not([data-theme]) .account-trigger {
+  border-color: var(--grid-strong);
+  border-radius: 2px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:root:not([data-theme]) .account-trigger .num {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+:root:not([data-theme]) .account-trigger:hover,
+:root:not([data-theme]) .account-trigger[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+
+:root:not([data-theme]) .who-signin {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+:root:not([data-theme]) .account-dropdown {
+  border-color: var(--grid-strong);
+  border-radius: 2px;
+  background: rgba(13, 17, 19, 0.97);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
+}
+
+:root:not([data-theme]) .account-dropdown > a,
+:root:not([data-theme]) .account-dropdown > button {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+
+:root:not([data-theme]) .account-dropdown > a:hover,
+:root:not([data-theme]) .account-dropdown > button:hover {
+  background: rgba(57, 230, 122, 0.08);
+  color: var(--accent);
+}
+
 :root:not([data-theme]) .who-name .num {
   font-family: var(--font-display);
   font-size: 1.15rem;
@@ -784,10 +830,6 @@
   :root:not([data-theme]) .topbar {
     flex-wrap: wrap;
     row-gap: 10px;
-  }
-  :root:not([data-theme]) .topbar .who {
-    margin-left: 0;
-    width: 100%;
   }
 }
 

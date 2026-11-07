@@ -137,9 +137,91 @@ a {
   margin-left: auto;
   display: flex;
   gap: 14px;
-  align-items: baseline;
+  align-items: center;
   color: var(--pencil);
   font-size: 0.95rem;
+}
+
+/* ---------- Account menu (theme, sound, account, sign out) ---------- */
+
+.account-menu {
+  position: relative;
+}
+
+.account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--grid);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.account-trigger:hover,
+.account-trigger[aria-expanded="true"] {
+  border-color: var(--pencil);
+}
+
+.account-trigger .num {
+  color: var(--pencil);
+}
+
+.account-trigger .caret {
+  font-size: 0.75em;
+  color: var(--pencil);
+}
+
+.who-signin {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.account-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--grid);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.account-dropdown > a,
+.account-dropdown > button {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.account-dropdown > a:hover,
+.account-dropdown > button:hover,
+.account-dropdown > a:focus-visible,
+.account-dropdown > button:focus-visible {
+  background: var(--grid);
+}
+
+.account-dropdown .menu-value {
+  color: var(--pencil);
 }
 
 .linkish {
@@ -887,6 +969,10 @@ button.xcell.selected {
     width: 100%;
     margin-left: 0;
     padding-bottom: 8px;
+  }
+  .account-dropdown {
+    left: 0;
+    right: auto;
   }
 }
 

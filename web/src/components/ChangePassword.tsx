@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -35,8 +35,9 @@ export function ChangePassword() {
   }
 
   return (
-    <div className="section">
+    <div className="section" id="account">
       <h2>Account</h2>
+      <ChangeUsername />
       {done && (
         <p className="notice" role="status">
           Password saved. You can now sign in with your username and password too.
@@ -203,5 +204,115 @@ function ExportData() {
       </button>
       {state === "error" && <span className="error">Couldn't prepare the download.</span>}
     </div>
+  );
+}
+
+function ChangeUsername() {
+  const { user, rename } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [welcome, setWelcome] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  // New Google players land here with ?welcome=1 to pick a name of their own.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("welcome")) {
+      setWelcome(true);
+      setOpen(true);
+      document.getElementById("account")?.scrollIntoView({ block: "start" });
+    }
+  }, []);
+  useEffect(() => {
+    if (open && user) setName((n) => n || user.username);
+  }, [open, user]);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await rename(name.trim());
+      setSaved(true);
+      setOpen(false);
+      setWelcome(false);
+      if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't change the username");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!user) return null;
+  return (
+    <>
+      {saved && (
+        <p className="notice" role="status">
+          You're now {user.username}. Your scores, rating and duels came with you.
+        </p>
+      )}
+      {!open ? (
+        <div className="actions">
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              setName(user.username);
+              setOpen(true);
+              setSaved(false);
+            }}
+          >
+            Change username
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={submit}>
+          {welcome && (
+            <p className="notice" role="status">
+              Welcome! We named you <strong>{user.username}</strong> from your Google account. Keep it, or pick
+              another name for the leaderboards.
+            </p>
+          )}
+          <div className="field">
+            <label htmlFor="new-username">Username</label>
+            <input
+              id="new-username"
+              className="text-input"
+              autoComplete="username"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              minLength={3}
+              maxLength={20}
+              pattern="[A-Za-z0-9_]+"
+              required
+              autoFocus
+            />
+            <p className="hint">3 to 20 letters, numbers or underscores. Everyone sees this on leaderboards and duels.</p>
+          </div>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="actions">
+            <button type="submit" className="btn" disabled={busy || name.trim().length < 3 || name.trim() === user.username}>
+              Save username
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                setOpen(false);
+                setWelcome(false);
+              }}
+            >
+              {welcome ? "Keep " + user.username : "Cancel"}
+            </button>
+          </div>
+        </form>
+      )}
+    </>
   );
 }

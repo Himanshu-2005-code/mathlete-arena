@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useSoundSetting } from "@/lib/sound";
 import { THEME_LABELS, useTheme } from "@/lib/theme";
@@ -48,38 +48,98 @@ export function TopBar() {
           </Link>
         ))}
       </nav>
-      <span className="who">
-        <button
-          type="button"
-          className="linkish"
-          onClick={cycleTheme}
-          title="Switch between the HUD look and the paper notebook (day or night)"
+      <div className="who">
+        {ready && !user && (
+          <Link href="/auth" className="who-signin">
+            Sign in
+          </Link>
+        )}
+        <AccountMenu
+          label={
+            user ? (
+              <>
+                <span className="who-user">{user.username}</span> <span className="num">{user.rating}</span>
+              </>
+            ) : (
+              "Settings"
+            )
+          }
         >
-          Theme: {THEME_LABELS[theme]}
-        </button>
-        <button
-          type="button"
-          className="linkish"
-          aria-pressed={sound}
-          onClick={() => setSound(!sound)}
-          title="Play a sound for right and wrong answers"
-        >
-          Sound {sound ? "on" : "off"}
-        </button>
-        {ready &&
-          (user ? (
-            <>
-              <Link href="/profile" className="who-name">
-                {user.username} <span className="num">{user.rating}</span>
-              </Link>
-              <button type="button" onClick={signOut} className="linkish">
-                Sign out
-              </button>
-            </>
-          ) : (
-            <Link href="/auth">Sign in</Link>
-          ))}
-      </span>
+          {user && (
+            <Link href="/profile#account" role="menuitem">
+              Account settings
+            </Link>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={cycleTheme}
+            title="Switch between the HUD look and the paper notebook (day or night)"
+          >
+            Theme <span className="menu-value">{THEME_LABELS[theme]}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            aria-checked={sound}
+            onClick={() => setSound(!sound)}
+            title="Play a sound for right and wrong answers"
+          >
+            Sound <span className="menu-value">{sound ? "On" : "Off"}</span>
+          </button>
+          {user && (
+            <button type="button" role="menuitem" onClick={signOut}>
+              Sign out
+            </button>
+          )}
+        </AccountMenu>
+      </div>
     </header>
+  );
+}
+
+/** A small dropdown that closes on outside click, Escape, or page change. */
+function AccountMenu({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="account-menu" ref={ref}>
+      <button
+        type="button"
+        className="account-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {label}
+        <span className="caret" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div className="account-dropdown" role="menu">
+          {children}
+        </div>
+      )}
+    </div>
   );
 }

@@ -31,7 +31,7 @@ function loadScript(): Promise<void> {
  * "Sign in with Google", shown only when the server has a Google client ID.
  * Works for new and returning players: the first sign-in creates the account.
  */
-export function GoogleButton({ onDone, onError }: { onDone: () => void; onError: (msg: string) => void }) {
+export function GoogleButton({ onDone, onError }: { onDone: (created: boolean) => void; onError: (msg: string) => void }) {
   const { signInWithGoogle } = useAuth();
   const ref = useRef<HTMLDivElement>(null);
   const [clientId, setClientId] = useState<string | null>(null);
@@ -87,8 +87,7 @@ export function GoogleButton({ onDone, onError }: { onDone: () => void; onError:
           callback: async ({ credential }) => {
             setBusy(true);
             try {
-              await signInWithGoogle(credential);
-              done.current();
+              done.current(await signInWithGoogle(credential));
             } catch (err) {
               fail.current((err as Error).message);
             } finally {

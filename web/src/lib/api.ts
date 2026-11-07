@@ -97,6 +97,8 @@ export const api = {
   login: (username: string, password: string) =>
     call<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   me: () => call<{ user: PublicUser }>("/api/me"),
+  changeUsername: (username: string) =>
+    call<{ user: PublicUser }>("/api/auth/username", { method: "POST", body: JSON.stringify({ username }) }),
   config: () => call<PublicConfig>("/api/config"),
   googleSignIn: (credential: string) =>
     call<AuthResponse>("/api/auth/google", { method: "POST", body: JSON.stringify({ credential }) }),

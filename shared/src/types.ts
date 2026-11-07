@@ -21,6 +21,8 @@ export interface PublicConfig {
 export interface AuthResponse {
   token: string;
   user: PublicUser;
+  /** Set by Google sign-in when this sign-in created the account. */
+  created?: boolean;
 }
 
 export const SPRINT_SECONDS = [30, 60, 120] as const;

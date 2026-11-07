@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   type AuthResponse,
   type PublicConfig,
+  type PublicUser,
   type DuelRow,
   PRACTICE_MODES,
   SPRINT_SECONDS,
@@ -217,7 +218,7 @@ export function createApp(db: Db, opts: AppOptions = {}) {
       const info = insertGoogleUser.run(username, NO_PASSWORD, profile.sub);
       user = findById.get(Number(info.lastInsertRowid))!;
     }
-    const body: AuthResponse = { token: signToken(user.id), user: toPublicUser(user) };
+    const body: AuthResponse = { token: signToken(user.id), user: toPublicUser(user), ...(created && { created }) };
     res.status(created ? 201 : 200).json(body);
   });
 
@@ -246,6 +247,24 @@ export function createApp(db: Db, opts: AppOptions = {}) {
     }
     setPassword.run(await hashPassword(parsed.data.next), user.id);
     res.json({ ok: true });
+  });
+
+  // Rename the signed-in player. Scores and duels follow, since they're stored by id.
+  const renameUser = db.prepare<[string, number]>("UPDATE users SET username = ? WHERE id = ? AND is_bot = 0");
+  app.post("/api/auth/username", requireAuth, (req, res) => {
+    const parsed = credentials.shape.username.safeParse(req.body?.username);
+    if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
+    const username = parsed.data;
+    const user = findById.get((req as AuthedRequest).userId);
+    if (!user) return void res.status(401).json({ error: "Account not found" });
+    if (isReservedName(username)) {
+      return void res.status(400).json({ error: "Usernames ending in _bot are kept for computer opponents" });
+    }
+    const owner = findByName.get(username);
+    if (owner && owner.id !== user.id) return void res.status(409).json({ error: "That username is taken" });
+    renameUser.run(username, user.id);
+    const body: { user: PublicUser } = { user: toPublicUser(findById.get(user.id)!) };
+    res.json(body);
   });
 
   // Deletes the account and everything recorded for it: sprints, puzzles,
