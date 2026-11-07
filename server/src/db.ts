@@ -1,12 +1,51 @@
 import fs from "node:fs";
 import path from "node:path";
-import Database from "better-sqlite3";
-import { DB_PATH } from "./config";
+import type BetterSqlite3 from "better-sqlite3";
+import Libsql from "libsql";
+import { DB_PATH, TURSO_AUTH_TOKEN, TURSO_DATABASE_URL, TURSO_SYNC_SECONDS } from "./config";
 
-export function openDb(file = DB_PATH) {
+/** libSQL speaks the better-sqlite3 API, so the rest of the server is unchanged. */
+type Database = BetterSqlite3.Database;
+const Database = Libsql as unknown as new (file: string, opts?: Record<string, unknown>) => Database;
+
+export interface OpenOptions {
+  /** Turso database URL (libsql://…); when set, `file` is a synced local replica. */
+  syncUrl?: string;
+  authToken?: string;
+  syncSeconds?: number;
+}
+
+/** libSQL adds a `_metadata` field to single-row results; drop it so rows match plain SQLite. */
+function stripRowMetadata(db: Database) {
+  const prepare = db.prepare.bind(db);
+  db.prepare = ((sql: string) => {
+    const stmt = prepare(sql);
+    const get = stmt.get.bind(stmt);
+    stmt.get = ((...args: unknown[]) => {
+      const row = get(...args) as Record<string, unknown> | undefined;
+      if (row && typeof row === "object" && "_metadata" in row) delete row._metadata;
+      return row;
+    }) as typeof stmt.get;
+    return stmt;
+  }) as typeof db.prepare;
+}
+
+export function openDb(
+  file = DB_PATH,
+  opts: OpenOptions = file === DB_PATH
+    ? { syncUrl: TURSO_DATABASE_URL, authToken: TURSO_AUTH_TOKEN, syncSeconds: TURSO_SYNC_SECONDS }
+    : {},
+) {
   if (file !== ":memory:") fs.mkdirSync(path.dirname(file), { recursive: true });
-  const db = new Database(file);
-  db.pragma("journal_mode = WAL");
+  const remote = Boolean(opts.syncUrl);
+  const db = remote
+    ? new Database(file, { syncUrl: opts.syncUrl, authToken: opts.authToken, syncPeriod: opts.syncSeconds })
+    : new Database(file);
+  stripRowMetadata(db);
+  // Pull the latest data before anything reads it. Writes go to Turso and
+  // land in the local replica too, so a player always sees their own changes.
+  if (remote) (db as unknown as { sync(): unknown }).sync();
+  else db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
 
   db.exec(`

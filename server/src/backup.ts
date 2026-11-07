@@ -9,14 +9,16 @@ const SUFFIX = ".db";
 const stamp = (d: Date) => d.toISOString().replace(/\.\d+Z$/, "Z").replace(/:/g, "-");
 
 /**
- * Copies the live database to `dir` with SQLite's online backup (safe while
+ * Copies the live database to `dir` with SQLite's VACUUM INTO (safe while
  * the game is running), then deletes the oldest copies beyond `keep`.
  * Returns the new file's path.
  */
 export async function backupDb(db: Db, dir: string, keep = 7, now = new Date()): Promise<string> {
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `${PREFIX}${stamp(now)}${SUFFIX}`);
-  await db.backup(file);
+  // VACUUM INTO writes a complete, compact copy in one statement, and works
+  // with both plain SQLite and libSQL (which has no backup API).
+  db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
   pruneBackups(dir, keep);
   return file;
 }

@@ -405,7 +405,7 @@ describe("new puzzle games", () => {
   });
 
   it("migrates an old daily table so the new kinds can be saved", async () => {
-    const Database = (await import("better-sqlite3")).default;
+    const Database = (await import("libsql")).default;
     const fs = await import("node:fs");
     const os = await import("node:os");
     const path = await import("node:path");
@@ -533,7 +533,7 @@ describe("Killer Sudoku, Futoshiki and blitz", () => {
   });
 
   it("migrates an older arcade table so the new games can be saved", async () => {
-    const Database = (await import("better-sqlite3")).default;
+    const Database = (await import("libsql")).default;
     const fs = await import("node:fs");
     const os = await import("node:os");
     const path = await import("node:path");

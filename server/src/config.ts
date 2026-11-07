@@ -32,6 +32,16 @@ export const corsOrigin = (origin: string | undefined, cb: (err: Error | null, o
 export const DB_PATH = process.env.DB_PATH ?? path.resolve(here, "../data/mathlete.db");
 
 /** Where database backups go (`npm run backup`, and automatic ones when BACKUP_EVERY_HOURS is set). */
+/**
+ * Turso (hosted libSQL). When TURSO_DATABASE_URL is set, DB_PATH becomes a
+ * local replica that syncs with Turso, so data survives restarts and deploys
+ * even on hosts without a disk. Leave unset to use a plain local SQLite file.
+ */
+export const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL?.trim() || "";
+export const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN?.trim() || "";
+/** How often (seconds) the local replica pulls changes from Turso. */
+export const TURSO_SYNC_SECONDS = Number(process.env.TURSO_SYNC_SECONDS ?? 60);
+
 export const BACKUP_DIR = process.env.BACKUP_DIR ?? path.join(path.dirname(DB_PATH), "backups");
 /** How many backups to keep; older ones are deleted. */
 export const BACKUP_KEEP = Number(process.env.BACKUP_KEEP ?? 7);

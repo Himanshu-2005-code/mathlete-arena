@@ -99,6 +99,9 @@ npm start         # run the built app and the server
 | `BACKUP_EVERY_HOURS` | server | `0` (off); back the database up this often while running, e.g. `24` |
 | `BACKUP_DIR` | server | `backups/` next to the database |
 | `BACKUP_KEEP` | server | `7` (older backups are deleted) |
+| `TURSO_DATABASE_URL` | server | Unset (plain local SQLite). A `libsql://…` Turso address makes `DB_PATH` a synced replica, so data survives deploys |
+| `TURSO_AUTH_TOKEN` | server | Token for the Turso database |
+| `TURSO_SYNC_SECONDS` | server | `60` (how often the replica pulls changes from Turso) |
 | `TRUST_PROXY` | server | `1` in production (read client addresses from the host's proxy for rate limiting) |
 | `BOT_AFTER_SECONDS` | server | `10` (seconds in the queue before a computer opponent steps in; `0` turns bots off) |
 | `SERVE_WEB` | server | unset (set to `1` by `npm run start:prod` so one server serves the site too) |
@@ -118,13 +121,23 @@ JWT_SECRET=some-long-random-string npm run start:prod
 
 `start:prod` refuses to start without `JWT_SECRET`. Sign-in and sign-up are rate limited per address, and every response carries basic security headers. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
 
+### Keeping data on the free plan with Turso
+
+The server stores data with libSQL, which is SQLite-compatible. On its own it's a plain SQLite file. Give it a [Turso](https://turso.tech) database and the file becomes a local replica that syncs with Turso, so accounts and scores survive restarts and deploys on hosts without a disk:
+
+1. Create a free Turso database and an auth token for it.
+2. Set `TURSO_DATABASE_URL` (the `libsql://…` address) and `TURSO_AUTH_TOKEN` on the server, e.g. in Render > Environment.
+3. Redeploy. Reads come from the local replica (fast); writes go to Turso.
+
+Leave both unset for local development and tests.
+
 ### Render free plan
 
 `render.yaml` (the default Blueprint) runs on Render's free plan. It costs nothing, but free instances have no disk, so accounts and scores reset on every restart or deploy, and the service sleeps after 15 idle minutes. Use `render.starter.yaml` as the Blueprint path (Starter plan, about $7/month, with a 1 GB disk) when you want data to stick.
 
 ### Backups
 
-`npm run backup` copies the database at `DB_PATH` into `BACKUP_DIR` using SQLite's online backup, so it's safe while the game is running, and keeps the newest `BACKUP_KEEP` copies. Set `BACKUP_EVERY_HOURS` to have the server do it on a schedule (the Render blueprint backs up daily). A backup on the same disk protects against a bad deploy or a corrupted file, not against losing the disk, so download one now and then: each is a single `.db` file you can open with any SQLite tool. To restore, stop the server and copy a backup over `DB_PATH`.
+`npm run backup` copies the database at `DB_PATH` into `BACKUP_DIR` using SQLite's `VACUUM INTO`, so it's safe while the game is running, and keeps the newest `BACKUP_KEEP` copies. Set `BACKUP_EVERY_HOURS` to have the server do it on a schedule (the Render blueprint backs up daily). A backup on the same disk protects against a bad deploy or a corrupted file, not against losing the disk, so download one now and then: each is a single `.db` file you can open with any SQLite tool. To restore, stop the server and copy a backup over `DB_PATH`.
 
 ### Render (recommended)
 

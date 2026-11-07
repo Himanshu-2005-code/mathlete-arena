@@ -1,6 +1,7 @@
 # Render Blueprint, free plan (the default): New > Blueprint and pick this repo.
-# Free instances have no disk, so the database lives in the container:
-# accounts and scores reset whenever the service restarts or redeploys, and
+# Free instances have no disk: set TURSO_DATABASE_URL and TURSO_AUTH_TOKEN
+# (a free Turso database) so accounts and scores survive restarts. Without them
+# the database lives in the container and resets on every deploy, and
 # the service sleeps after 15 minutes without visitors (the next visit takes
 # about a minute to wake it). Use render.starter.yaml (Starter plan + disk) to keep data.
 services:
@@ -12,6 +13,12 @@ services:
     envVars:
       - key: JWT_SECRET
         generateValue: true
+      # Turso keeps data across restarts on the free plan. Set both in the
+      # Render dashboard (Environment); without them data resets on each deploy.
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       - key: BOT_AFTER_SECONDS
         value: "10"
       - key: DAILY_UTC_OFFSET_MIN
