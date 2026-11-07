@@ -8,6 +8,14 @@ export interface PublicUser {
   username: string;
   rating: number;
   createdAt: string;
+  /** False for players who only ever signed in with Google. */
+  hasPassword: boolean;
+}
+
+/** Settings the web app reads at runtime. */
+export interface PublicConfig {
+  /** Google OAuth client ID, or null when Google sign-in is off. */
+  googleClientId: string | null;
 }
 
 export interface AuthResponse {

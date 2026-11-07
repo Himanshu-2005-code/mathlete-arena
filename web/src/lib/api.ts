@@ -1,6 +1,7 @@
 import { migrateLegacyStorage } from "./legacy";
 import type {
   PlayerProfile,
+  PublicConfig,
   ArcadeGame,
   ArcadeResult,
   AuthResponse,
@@ -96,6 +97,9 @@ export const api = {
   login: (username: string, password: string) =>
     call<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
   me: () => call<{ user: PublicUser }>("/api/me"),
+  config: () => call<PublicConfig>("/api/config"),
+  googleSignIn: (credential: string) =>
+    call<AuthResponse>("/api/auth/google", { method: "POST", body: JSON.stringify({ credential }) }),
   savePractice: (r: PracticeResultInput) =>
     call<{ ok: true; previousBest: number | null; newBest: boolean }>("/api/results/practice", { method: "POST", body: JSON.stringify(r) }),
   newPuzzle: (difficulty: Difficulty) => call<PublicPuzzle>(`/api/puzzles/crossmath?difficulty=${difficulty}`),

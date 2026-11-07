@@ -165,6 +165,11 @@ export function openDb(
   if (!cols.some((c) => c.name === "is_bot")) {
     db.exec("ALTER TABLE users ADD COLUMN is_bot INTEGER NOT NULL DEFAULT 0");
   }
+  // Google sign-in: the Google account ("sub") a player signed up with.
+  if (!cols.some((c) => c.name === "google_sub")) {
+    db.exec("ALTER TABLE users ADD COLUMN google_sub TEXT");
+  }
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google ON users(google_sub) WHERE google_sub IS NOT NULL");
 
   // Indexes for the hot reads, created after the migrations above so they
   // survive any table rebuild:

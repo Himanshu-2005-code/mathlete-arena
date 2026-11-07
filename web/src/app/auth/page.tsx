@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { GoogleButton } from "@/components/GoogleButton";
 import { useAuth } from "@/lib/auth";
 
 export default function AuthPage() {
@@ -97,6 +98,7 @@ export default function AuthPage() {
             {isSignIn ? "I'm new here" : "I already have an account"}
           </button>
         </div>
+        <GoogleButton onDone={() => router.push("/profile")} onError={setError} />
       </form>
       <aside className="auth-aside" aria-label="What an account gives you">
         <h2>With an account</h2>

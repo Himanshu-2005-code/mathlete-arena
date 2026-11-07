@@ -10,6 +10,8 @@ interface AuthState {
   ready: boolean;
   signIn: (username: string, password: string) => Promise<void>;
   signUp: (username: string, password: string) => Promise<void>;
+  /** Sign in (or sign up) with the ID token from Google's button. */
+  signInWithGoogle: (credential: string) => Promise<void>;
   signOut: () => void;
   /** Re-fetch the signed-in user, e.g. after a duel changes their rating. */
   refresh: () => Promise<void>;
@@ -67,6 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setExpired(false);
   }, []);
 
+  const signInWithGoogle = useCallback(async (credential: string) => {
+    const res = await api.googleSignIn(credential);
+    setToken(res.token);
+    setUser(res.user);
+    setExpired(false);
+  }, []);
+
   const signOut = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -80,8 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, ready, signIn, signUp, signOut, refresh, expired, dismissExpired }),
-    [user, ready, signIn, signUp, signOut, refresh, expired, dismissExpired],
+    () => ({ user, ready, signIn, signUp, signInWithGoogle, signOut, refresh, expired, dismissExpired }),
+    [user, ready, signIn, signUp, signInWithGoogle, signOut, refresh, expired, dismissExpired],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

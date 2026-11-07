@@ -4,6 +4,7 @@ import express from "express";
 import { z } from "zod";
 import {
   type AuthResponse,
+  type PublicConfig,
   type DuelRow,
   PRACTICE_MODES,
   SPRINT_SECONDS,
@@ -22,19 +23,22 @@ import {
 } from "@mathlete/shared";
 import {
   type AuthedRequest,
+  NO_PASSWORD,
   type UserRow,
   hashPassword,
   requireAuth,
   signToken,
   toPublicUser,
+  usernameFromGoogle,
   verifyPassword,
 } from "./auth";
+import { type GoogleVerifier, verifyGoogleCredential } from "./google";
 import { corsOrigin } from "./config";
 import { isReservedName } from "./bots";
 import { dailyStreak, registerCompetitionRoutes } from "./compete";
 import { answerExpressions, answerGrid, answerPath, arcadeGame, puzzleKind } from "./schemas";
 import rateLimit from "express-rate-limit";
-import { AUTH_RATE_LIMIT, LOG_REQUESTS, TRUST_PROXY, WRITE_RATE_LIMIT } from "./config";
+import { AUTH_RATE_LIMIT, GOOGLE_CLIENT_ID, LOG_REQUESTS, TRUST_PROXY, WRITE_RATE_LIMIT } from "./config";
 import type { Db } from "./db";
 import { APP_VERSION } from "./version";
 
@@ -59,7 +63,8 @@ const newPassword = (label: string) =>
 const newCredentials = credentials.extend({ password: newPassword("Password") });
 
 const passwordChange = z.object({
-  current: z.string().min(1, "Enter your current password").max(100),
+  // Empty for Google-only players, who have no password yet.
+  current: z.string().max(100).default(""),
   next: newPassword("New password"),
 });
 
@@ -92,7 +97,16 @@ function firstError(err: z.ZodError): string {
   return err.issues[0]?.message ?? "Invalid input";
 }
 
-export function createApp(db: Db) {
+export interface AppOptions {
+  /** Google sign-in client ID; defaults to GOOGLE_CLIENT_ID. */
+  googleClientId?: string;
+  /** Checks Google ID tokens; replaceable in tests. */
+  verifyGoogle?: GoogleVerifier;
+}
+
+export function createApp(db: Db, opts: AppOptions = {}) {
+  const googleClientId = opts.googleClientId ?? GOOGLE_CLIENT_ID;
+  const verifyGoogle = opts.verifyGoogle ?? verifyGoogleCredential;
   const app = express();
   // Behind Render/Railway/Fly the client's address arrives in X-Forwarded-For.
   if (TRUST_PROXY) app.set("trust proxy", 1);
@@ -177,6 +191,36 @@ export function createApp(db: Db) {
     res.status(201).json(body);
   });
 
+  // Runtime settings for the web app (so one build works with or without Google sign-in).
+  app.get("/api/config", (_req, res) => {
+    const body: PublicConfig = { googleClientId: googleClientId || null };
+    res.json(body);
+  });
+
+  // Sign in with Google: verify Google's ID token, then sign in the player who
+  // linked that Google account, or create a new player for it.
+  const findByGoogle = db.prepare<[string], UserRow>("SELECT * FROM users WHERE google_sub = ?");
+  const insertGoogleUser = db.prepare<[string, string, string]>(
+    "INSERT INTO users (username, password_hash, google_sub) VALUES (?, ?, ?)",
+  );
+  app.post("/api/auth/google", async (req, res) => {
+    if (!googleClientId) return void res.status(404).json({ error: "Google sign-in isn't set up on this server" });
+    const parsed = z.object({ credential: z.string().min(20).max(5000) }).safeParse(req.body);
+    if (!parsed.success) return void res.status(400).json({ error: "Missing Google credential" });
+    const profile = await verifyGoogle(parsed.data.credential);
+    if (!profile) return void res.status(401).json({ error: "Google sign-in failed. Please try again." });
+
+    let user = findByGoogle.get(profile.sub);
+    const created = !user;
+    if (!user) {
+      const username = usernameFromGoogle(profile, (n) => Boolean(findByName.get(n)));
+      const info = insertGoogleUser.run(username, NO_PASSWORD, profile.sub);
+      user = findById.get(Number(info.lastInsertRowid))!;
+    }
+    const body: AuthResponse = { token: signToken(user.id), user: toPublicUser(user) };
+    res.status(created ? 201 : 200).json(body);
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     const parsed = credentials.safeParse(req.body);
     if (!parsed.success) return void res.status(400).json({ error: "Invalid username or password" });
@@ -195,7 +239,9 @@ export function createApp(db: Db) {
     if (!parsed.success) return void res.status(400).json({ error: firstError(parsed.error) });
     const user = findById.get((req as AuthedRequest).userId);
     if (!user) return void res.status(401).json({ error: "Account not found" });
-    if (!(await verifyPassword(parsed.data.current, user.password_hash))) {
+    // Google-only players have no password yet; signing in with Google is
+    // their proof, so they can set one directly.
+    if (user.password_hash !== NO_PASSWORD && !(await verifyPassword(parsed.data.current, user.password_hash))) {
       return void res.status(403).json({ error: "Your current password is wrong" });
     }
     setPassword.run(await hashPassword(parsed.data.next), user.id);
@@ -210,8 +256,13 @@ export function createApp(db: Db) {
     if (!parsed.success) return void res.status(400).json({ error: "Enter your password to confirm" });
     const user = findById.get((req as AuthedRequest).userId);
     if (!user) return void res.status(401).json({ error: "Account not found" });
-    if (!(await verifyPassword(parsed.data.password, user.password_hash))) {
-      return void res.status(403).json({ error: "That password is wrong" });
+    // Players without a password confirm by typing their username instead.
+    const confirmed =
+      user.password_hash === NO_PASSWORD
+        ? parsed.data.password.trim().toLowerCase() === user.username.toLowerCase()
+        : await verifyPassword(parsed.data.password, user.password_hash);
+    if (!confirmed) {
+      return void res.status(403).json({ error: user.password_hash === NO_PASSWORD ? "That isn't your username" : "That password is wrong" });
     }
     deleteUser.run(user.id);
     res.json({ ok: true });

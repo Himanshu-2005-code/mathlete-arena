@@ -37,6 +37,12 @@ export const DB_PATH = process.env.DB_PATH ?? path.resolve(here, "../data/mathle
  * local replica that syncs with Turso, so data survives restarts and deploys
  * even on hosts without a disk. Leave unset to use a plain local SQLite file.
  */
+/**
+ * Google sign-in: the OAuth client ID from Google Cloud (it's public, not a
+ * secret). When unset, the "Sign in with Google" button is hidden.
+ */
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID?.trim() || "";
+
 export const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL?.trim() || "";
 export const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN?.trim() || "";
 /** How often (seconds) the local replica pulls changes from Turso. */

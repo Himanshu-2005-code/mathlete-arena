@@ -99,6 +99,7 @@ npm start         # run the built app and the server
 | `BACKUP_EVERY_HOURS` | server | `0` (off); back the database up this often while running, e.g. `24` |
 | `BACKUP_DIR` | server | `backups/` next to the database |
 | `BACKUP_KEEP` | server | `7` (older backups are deleted) |
+| `GOOGLE_CLIENT_ID` | server | Unset (Google sign-in hidden). The Google OAuth client ID enables "Continue with Google" |
 | `TURSO_DATABASE_URL` | server | Unset (plain local SQLite). A `libsql://…` Turso address makes `DB_PATH` a synced replica, so data survives deploys |
 | `TURSO_AUTH_TOKEN` | server | Token for the Turso database |
 | `TURSO_SYNC_SECONDS` | server | `60` (how often the replica pulls changes from Turso) |
@@ -120,6 +121,15 @@ JWT_SECRET=some-long-random-string npm run start:prod
 ```
 
 `start:prod` refuses to start without `JWT_SECRET`. Sign-in and sign-up are rate limited per address, and every response carries basic security headers. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
+
+### Google sign-in
+
+Players can sign in with Google as well as a username and password. The first Google sign-in creates an account (username taken from their name, made unique); later ones sign in to the same account. Google-only players can set a password from their profile, and confirm account deletion by typing their username.
+
+1. In Google Cloud Console, create an OAuth client ID of type **Web application**, with your site (e.g. `https://mathlete-arena.onrender.com`, plus `http://localhost:3000` for development) under **Authorized JavaScript origins**.
+2. Set `GOOGLE_CLIENT_ID` on the server to that client ID. No client secret is needed: the server checks Google's signed ID token against the client ID.
+
+Without `GOOGLE_CLIENT_ID` the Google button simply doesn't appear.
 
 ### Keeping data on the free plan with Turso
 
@@ -213,6 +223,8 @@ web/src/
 | POST | `/api/auth/register` | | Create account, returns token |
 | POST | `/api/auth/login` | | Sign in, returns token |
 | GET | `/api/health` | | Database check, uptime and version, for uptime monitors |
+| GET | `/api/config` | | Runtime settings for the web app (Google client ID) |
+| POST | `/api/auth/google` | | Sign in or sign up with a Google ID token (`credential`) |
 | POST | `/api/auth/password` | yes | Change password (`current`, `next`) |
 | GET | `/api/me/export` | yes | Download everything stored for your account as JSON |
 | POST | `/api/auth/delete` | yes | Delete your account and its results (`password`) |

@@ -11,6 +11,9 @@ services:
     envVars:
       - key: JWT_SECRET
         generateValue: true
+      # Google sign-in: the OAuth client ID from Google Cloud (public, not a secret).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       - key: DB_PATH
         value: /data/mathlete.db
       - key: BOT_AFTER_SECONDS

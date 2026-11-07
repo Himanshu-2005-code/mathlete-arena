@@ -1151,3 +1151,17 @@
   background: rgba(255, 184, 28, 0.08);
   color: var(--ink);
 }
+
+/* ---------- Google sign-in ---------- */
+
+:root:not([data-theme]) .or-line {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+:root:not([data-theme]) .or-line::before,
+:root:not([data-theme]) .or-line::after {
+  background: var(--grid-strong);
+}

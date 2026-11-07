@@ -6,6 +6,9 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 export function ChangePassword() {
+  const { user, refresh } = useAuth();
+  // Players who signed up with Google have no password until they set one.
+  const hasPassword = user?.hasPassword ?? true;
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -19,6 +22,7 @@ export function ChangePassword() {
     setError("");
     try {
       await api.changePassword(current, next);
+      await refresh();
       setDone(true);
       setOpen(false);
       setCurrent("");
@@ -35,7 +39,7 @@ export function ChangePassword() {
       <h2>Account</h2>
       {done && (
         <p className="notice" role="status">
-          Password changed. Use the new one next time you sign in.
+          Password saved. You can now sign in with your username and password too.
         </p>
       )}
       {!open ? (
@@ -48,23 +52,27 @@ export function ChangePassword() {
               setDone(false);
             }}
           >
-            Change password
+            {hasPassword ? "Change password" : "Set a password"}
           </button>
         </div>
       ) : (
         <form onSubmit={submit}>
-          <div className="field">
-            <label htmlFor="pw-current">Current password</label>
-            <input
-              id="pw-current"
-              type="password"
-              className="text-input"
-              autoComplete="current-password"
-              value={current}
-              onChange={(e) => setCurrent(e.target.value)}
-              required
-            />
-          </div>
+          {hasPassword ? (
+            <div className="field">
+              <label htmlFor="pw-current">Current password</label>
+              <input
+                id="pw-current"
+                type="password"
+                className="text-input"
+                autoComplete="current-password"
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                required
+              />
+            </div>
+          ) : (
+            <p className="hint">You sign in with Google. Set a password to also sign in with your username.</p>
+          )}
           <div className="field">
             <label htmlFor="pw-next">New password</label>
             <input
@@ -86,7 +94,7 @@ export function ChangePassword() {
             </p>
           )}
           <div className="actions">
-            <button type="submit" className="btn" disabled={busy || !current || next.length < 6}>
+            <button type="submit" className="btn" disabled={busy || (hasPassword && !current) || next.length < 6}>
               Save new password
             </button>
             <button type="button" className="btn ghost" onClick={() => setOpen(false)}>
@@ -102,7 +110,8 @@ export function ChangePassword() {
 }
 
 function DeleteAccount() {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  const hasPassword = user?.hasPassword ?? true;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -139,12 +148,14 @@ function DeleteAccount() {
         duels. It can't be undone.
       </p>
       <div className="field">
-        <label htmlFor="del-password">Type your password to confirm</label>
+        <label htmlFor="del-password">
+          {hasPassword ? "Type your password to confirm" : `Type your username (${user?.username}) to confirm`}
+        </label>
         <input
           id="del-password"
-          type="password"
+          type={hasPassword ? "password" : "text"}
           className="text-input"
-          autoComplete="current-password"
+          autoComplete={hasPassword ? "current-password" : "off"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

@@ -13,6 +13,9 @@ services:
     envVars:
       - key: JWT_SECRET
         generateValue: true
+      # Google sign-in: the OAuth client ID from Google Cloud (public, not a secret).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
       # Turso keeps data across restarts on the free plan. Set both in the
       # Render dashboard (Environment); without them data resets on each deploy.
       - key: TURSO_DATABASE_URL
