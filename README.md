@@ -103,7 +103,7 @@ npm start         # run the built app and the server
 | `BOT_AFTER_SECONDS` | server | `10` (seconds in the queue before a computer opponent steps in; `0` turns bots off) |
 | `SERVE_WEB` | server | unset (set to `1` by `npm run start:prod` so one server serves the site too) |
 | `LOG_REQUESTS` | server | `1` in production (one log line per API call: method, path, status, time; no query strings or bodies) |
-| `SITE_URL` | web (build) | `http://localhost:3000` (public address used in the sitemap and `robots.txt`) |
+| `SITE_URL` | web | Optional. The public address used in the sitemap and `robots.txt`; when unset it's taken from each request's host, so it's right on any domain |
 | `NEXT_PUBLIC_API_URL` | web | `http://localhost:4000` (empty in production builds, meaning same origin) |
 
 ## Deploying
