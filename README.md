@@ -4,7 +4,7 @@ A Matiks-inspired competitive mental math game: live 1v1 duels with matchmaking 
 
 **Play it live: [mathlete-arena.onrender.com](https://mathlete-arena.onrender.com)**
 
-Hosted on Render's free plan, so the first visit after a quiet spell can take up to a minute while the server wakes up, and accounts and scores reset whenever it redeploys.
+Hosted on Render's free plan with a free Turso database, so accounts and scores are kept across deploys. The first visit after a quiet spell can take up to a minute while the server wakes up.
 
 ## Features
 
