@@ -41,7 +41,7 @@ export default function Home() {
     <>
       <section className="hero" aria-labelledby="hero-title">
         <h1 id="hero-title" className="sr-only">
-          Matik: speed math
+          Mathlete Arena: speed math duels
         </h1>
         <div className="hero-q" aria-live="polite">
           {q ? (

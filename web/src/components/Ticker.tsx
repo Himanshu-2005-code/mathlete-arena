@@ -19,7 +19,7 @@ export function Ticker() {
     </ul>
   );
   return (
-    <div className="ticker" aria-label="About Matik">
+    <div className="ticker" aria-label="About Mathlete Arena">
       <div className="ticker-track">
         {row(false)}
         {row(true)}

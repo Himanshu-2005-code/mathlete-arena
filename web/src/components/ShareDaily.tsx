@@ -21,7 +21,7 @@ export function ShareDaily({
   if (!played.length) return null;
 
   const text = [
-    `Matik daily, ${day}`,
+    `Mathlete Arena daily, ${day}`,
     ...slots.map((s) => {
       const r = results[s.id];
       if (!r) return `▢ ${s.title}`;

@@ -8,11 +8,11 @@ import "./hud.css";
 const description = "Speed math sprints, live duels, a daily challenge and number puzzles.";
 
 export const metadata: Metadata = {
-  title: { default: "Matik: speed math", template: "%s · Matik" },
+  title: { default: "Mathlete Arena: speed math duels", template: "%s · Mathlete Arena" },
   description,
-  applicationName: "Matik",
-  openGraph: { title: "Matik: speed math", description, type: "website", siteName: "Matik" },
-  twitter: { card: "summary", title: "Matik: speed math", description },
+  applicationName: "Mathlete Arena",
+  openGraph: { title: "Mathlete Arena: speed math duels", description, type: "website", siteName: "Mathlete Arena" },
+  twitter: { card: "summary", title: "Mathlete Arena: speed math duels", description },
 };
 
 export const viewport: Viewport = {

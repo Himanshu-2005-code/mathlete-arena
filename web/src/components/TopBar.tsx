@@ -29,8 +29,8 @@ export function TopBar() {
 
   return (
     <header className={`topbar${open ? " open" : ""}`}>
-      <Link href="/" className="wordmark">
-        matik
+      <Link href="/" className="wordmark" aria-label="Mathlete Arena home">
+        mathlete
       </Link>
       <button
         type="button"

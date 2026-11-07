@@ -2,7 +2,7 @@
 
 ## Reporting a problem
 
-If you find a security issue in Matik, please don't open a public issue. Contact the maintainer, Himanshu, through GitHub (@Himanshu-2005-code) with steps to reproduce, and allow time for a fix before sharing details.
+If you find a security issue in Mathlete Arena, please don't open a public issue. Contact the maintainer, Himanshu, through GitHub (@Himanshu-2005-code) with steps to reproduce, and allow time for a fix before sharing details.
 
 ## What the server already does
 

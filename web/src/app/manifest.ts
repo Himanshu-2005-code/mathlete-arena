@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Matik: speed math",
-    short_name: "Matik",
+    name: "Mathlete Arena: speed math duels",
+    short_name: "Mathlete",
     description: "Speed math sprints, duels, daily challenges and number puzzles.",
     start_url: "/",
     display: "standalone",

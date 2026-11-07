@@ -23,7 +23,7 @@ export function ShareInvite({ link, code }: { link: string; code: string }) {
 
   const share = () =>
     navigator
-      .share({ title: "Matik duel", text: `Race me at mental math on Matik. Code ${code}:`, url: link })
+      .share({ title: "Mathlete Arena duel", text: `Race me at mental math on Mathlete Arena. Code ${code}:`, url: link })
       .catch(() => {});
 
   return (

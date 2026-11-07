@@ -1,6 +1,6 @@
-# matik-game
+# Mathlete Arena
 
-A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, eight puzzle games (cross-math, KenKen, Sudoku, Killer Sudoku, Futoshiki, Math Maze, Hectoc, Make 24) and five arcade games (Flash Anzan, Number Memory, and three 60-second blitzes).
+A Matiks-inspired competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, eight puzzle games (cross-math, KenKen, Sudoku, Killer Sudoku, Futoshiki, Math Maze, Hectoc, Make 24) and five arcade games (Flash Anzan, Number Memory, and three 60-second blitzes).
 
 **Play it live: [matik-1dcr.onrender.com](https://matik-1dcr.onrender.com)**
 
