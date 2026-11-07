@@ -124,13 +124,13 @@ JWT_SECRET=some-long-random-string npm run start:prod
 
 ### Render (recommended)
 
-The repo includes a `Dockerfile` and a `render.yaml` blueprint.
+The repo includes a `Dockerfile` and two Render blueprints: `render.yaml` (free plan, the default) and `render.starter.yaml` (Starter plan with a disk).
 
 1. Sign in at [render.com](https://render.com) with GitHub.
-2. New > Blueprint, and pick this repo. Render reads `render.yaml`, builds the Dockerfile, generates `JWT_SECRET`, and mounts a 1 GB disk at `/data` for the database.
+2. New > Blueprint, and pick this repo. Render reads `render.yaml`, builds the Dockerfile and generates `JWT_SECRET`. To keep data across deploys, set the Blueprint path to `render.starter.yaml`, which also mounts a 1 GB disk at `/data` for the database.
 3. Open the `onrender.com` URL it gives you. Every push to `main` redeploys.
 
-The disk needs a paid instance (Starter). To try it on the free plan, delete the `disk` block from `render.yaml` first; it works, but the database resets on each deploy and the free instance sleeps when idle.
+The disk needs a paid instance (Starter). On the free plan the database resets on each deploy and the instance sleeps when idle.
 
 ### Vercel (site) + Render (game server)
 
