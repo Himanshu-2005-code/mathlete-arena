@@ -2,6 +2,10 @@
 
 A Matiks-style competitive mental math game: live 1v1 duels with matchmaking and Elo ratings, a daily challenge, leaderboards, timed arithmetic sprints with adaptive difficulty, eight puzzle games (cross-math, KenKen, Sudoku, Killer Sudoku, Futoshiki, Math Maze, Hectoc, Make 24) and five arcade games (Flash Anzan, Number Memory, and three 60-second blitzes).
 
+**Play it live: [matik-1dcr.onrender.com](https://matik-1dcr.onrender.com)**
+
+Hosted on Render's free plan, so the first visit after a quiet spell can take up to a minute while the server wakes up, and accounts and scores reset whenever it redeploys.
+
 ## Features
 
 **Competitive (phase 2)**
