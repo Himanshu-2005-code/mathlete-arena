@@ -216,6 +216,38 @@ web/src/
   lib/            API client, auth context, socket client
 ```
 
+## How a duel works
+
+The server owns the truth in a duel. Both players get the same seed, so each browser can generate every question locally and instantly, but only the server decides what counts. The code lives in `server/src/duels.ts` (server) and `web/src/app/duel/page.tsx` (browser), with the shared event types in `shared/src/duel.ts`.
+
+```mermaid
+sequenceDiagram
+    participant A as Player A (browser)
+    participant S as Server
+    participant B as Player B (browser)
+    A->>S: queue:join
+    B->>S: queue:join
+    Note over S: Pair the longest waiters within a rating gap<br/>that widens every second (a bot steps in after 10 s)
+    S->>A: duel:start (seed, startsAt, endsAt, serverNow)
+    S->>B: duel:start (same seed)
+    Note over A,B: 3 s countdown, then 60 s of questions generated from the seed
+    A->>S: duel:answer (index, value)
+    Note over S: Check the answer, the timing and the index
+    S->>A: duel:progress (scores, next index)
+    S->>B: duel:progress (scores)
+    Note over S: Timer ends the duel: compare scores, update Elo
+    S->>A: duel:end (result, new rating)
+    S->>B: duel:end (result, new rating)
+```
+
+1. **Matchmaking.** Queued players are paired oldest first. The rating gap allowed starts at 100 and grows by 50 every second they wait, so strong players aren't fed beginners straight away but nobody waits forever. After 10 seconds without a match, a computer opponent near your rating steps in. Friends can skip the queue with a six-character challenge code.
+2. **Same questions, generated locally.** Question *i* comes from `sequenceQuestion(seed, i)`, which gives each index its own random stream. Both browsers and the server get identical questions without sending them over the network, and difficulty climbs every four questions.
+3. **Answering.** The browser only sends an answer once it's right, then moves to the next question at once so typing never waits on the network. The server re-checks every answer against its own copy of the question. It ignores answers sent faster than a person could type (anti-script) and briefly locks out anyone who sends a wrong one, since the real app never does.
+4. **Staying in sync.** If the server doesn't count an answer, the browser has run ahead. The server replies with `duel:resync` and the browser goes back to the question the server is on, so one lost answer can't spoil the rest of the duel.
+5. **One clock.** `duel:start` carries the server's own time (`serverNow`). The browser uses it to shift the start and end times onto its own clock, so a device clock that's a few seconds off can't stretch or cut short the 60 seconds. When the timer hits zero the answer box locks, and the server ignores anything that arrives late.
+6. **Dropped connections.** A player whose connection drops has 10 seconds to come back. On reconnecting, the server sends `duel:start` again with a `resume` block (both scores and the current question). If they don't come back, it counts as leaving and the other player wins. A result that was missed while disconnected is sent again on reconnect.
+7. **The result.** When time runs out, the server compares correct answers and updates both ratings with Elo (K = 32): beating a stronger player earns more than beating a weaker one. It saves the duel, and both players can ask for a rematch within a minute.
+
 ## API
 
 | Method | Path | Auth | Purpose |
@@ -244,7 +276,7 @@ web/src/
 
 Client to server: `queue:join`, `queue:leave`, `challenge:create`, `challenge:join {code}`, `challenge:cancel`, `duel:answer {index, value}`, `duel:forfeit`, `rematch:request`, `rematch:cancel`.
 
-Server to client: `presence`, `queue:joined`, `queue:left`, `challenge:created {code}`, `challenge:error`, `duel:start`, `duel:progress`, `duel:wrong`, `duel:end`, `rematch:offered {from}`, `rematch:waiting {opponent}`, `rematch:declined {message}`.
+Server to client: `presence`, `queue:joined`, `queue:left`, `challenge:created {code}`, `challenge:error`, `duel:start` (with `serverNow`, and `resume` when rejoining), `duel:progress`, `duel:resync`, `duel:wrong`, `duel:end`, `rematch:offered {from}`, `rematch:waiting {opponent}`, `rematch:declined {message}`.
 
 Sockets authenticate with the same JWT as the REST API (`auth: { token }`).
 
