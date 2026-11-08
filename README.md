@@ -90,7 +90,7 @@ npm start         # run the built app and the server
 | Variable | Where | Default |
 | --- | --- | --- |
 | `PORT` | server | `4000` |
-| `JWT_SECRET` | server | insecure dev secret (required when `NODE_ENV=production`) |
+| `JWT_SECRET` | server | insecure dev secret (required when `NODE_ENV=production`, at least 32 characters; make one with `openssl rand -base64 32`) |
 | `WEB_ORIGIN` | server | `http://localhost:3000`; sites allowed to call the API and open sockets, comma-separated, `https://*.vercel.app` style wildcards allowed |
 | `DB_PATH` | server | `server/data/mathlete.db` |
 | `DAILY_UTC_OFFSET_MIN` | server | `330` (daily challenge rolls over at midnight IST) |
@@ -117,10 +117,10 @@ In production one Node process serves everything: the API, the Socket.io duels a
 ```bash
 npm ci
 npm run build:prod   # builds the site to talk to its own origin
-JWT_SECRET=some-long-random-string npm run start:prod
+JWT_SECRET=$(openssl rand -base64 32) npm run start:prod
 ```
 
-`start:prod` refuses to start without `JWT_SECRET`. Sign-in and sign-up are rate limited per address, and every response carries basic security headers. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
+`start:prod` refuses to start without a `JWT_SECRET` of at least 32 characters, since anyone who knows it could sign in as any player. Sign-in and sign-up are rate limited per address, and every response carries basic security headers. The SQLite database lives at `DB_PATH`, which must be on persistent storage or accounts and ratings are lost on every deploy.
 
 ### Google sign-in
 

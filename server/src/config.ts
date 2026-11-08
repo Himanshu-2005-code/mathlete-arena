@@ -76,11 +76,32 @@ export const LOG_REQUESTS = (process.env.LOG_REQUESTS ?? (process.env.NODE_ENV =
 export const SERVE_WEB = process.env.SERVE_WEB === "1";
 
 const DEV_SECRET = "dev-only-secret-change-me";
-export const JWT_SECRET = process.env.JWT_SECRET ?? DEV_SECRET;
+/** Shortest sign-in secret allowed in production (Render's generated values are 44 characters). */
+export const MIN_SECRET_LENGTH = 32;
 
-if (JWT_SECRET === DEV_SECRET) {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Set JWT_SECRET in production.");
-  }
-  console.warn("[mathlete] JWT_SECRET not set; using an insecure development secret.");
+/**
+ * Anyone who knows the sign-in secret can forge a token for any account, so in
+ * production refuse to start with a missing, placeholder or short one. Returns
+ * an error to throw, a warning to log, or null when the secret is fine.
+ */
+export function checkJwtSecret(
+  secret: string | undefined,
+  production: boolean,
+): { error: string } | { warning: string } | null {
+  const value = secret?.trim() ?? "";
+  const problem =
+    value === "" || value === DEV_SECRET
+      ? "JWT_SECRET is not set"
+      : value.length < MIN_SECRET_LENGTH
+        ? `JWT_SECRET is only ${value.length} characters; use at least ${MIN_SECRET_LENGTH}`
+        : null;
+  if (!problem) return null;
+  if (production) return { error: `${problem}. Generate one with: openssl rand -base64 32` };
+  return { warning: `${problem}; fine for development, not for production.` };
 }
+
+export const JWT_SECRET = process.env.JWT_SECRET?.trim() || DEV_SECRET;
+
+const secretCheck = checkJwtSecret(process.env.JWT_SECRET, process.env.NODE_ENV === "production");
+if (secretCheck && "error" in secretCheck) throw new Error(secretCheck.error);
+if (secretCheck) console.warn(`[mathlete] ${secretCheck.warning}`);
