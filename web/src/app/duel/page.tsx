@@ -8,6 +8,7 @@ import {
   type DuelEndReason,
   type DuelOutcome,
   type DuelPlayerInfo,
+  DUEL_RECONNECT_MS,
   type Question,
   sequenceQuestion,
 } from "@mathlete/shared";
@@ -84,23 +85,42 @@ export default function DuelPage() {
       setRematchMsg(message);
     });
     s.on("duel:start", (d) => {
+      // The server's times are on the server's clock. Shift them onto this
+      // device's clock, which can easily be a few seconds off.
+      const shift = Date.now() - d.serverNow;
       setError("");
       setRematch({ kind: "none" });
       setRematchMsg("");
-      setIndex(0);
-      setMyScore(0);
-      setTheirScore(0);
+      setIndex(d.resume?.yourIndex ?? 0);
+      setMyScore(d.resume?.you ?? 0);
+      setTheirScore(d.resume?.opponent ?? 0);
       setValue("");
-      setPhase({ kind: "live", seed: d.seed, startsAt: d.startsAt, endsAt: d.endsAt, you: d.you, opponent: d.opponent });
+      setPhase({
+        kind: "live",
+        seed: d.seed,
+        startsAt: d.startsAt + shift,
+        endsAt: d.endsAt + shift,
+        you: d.you,
+        opponent: d.opponent,
+      });
     });
     s.on("duel:progress", (p) => {
       setMyScore(p.you);
       setTheirScore(p.opponent);
       setIndex((i) => Math.max(i, p.yourIndex));
     });
+    // An answer didn't count (sent too fast, or lost): go back to where the server is.
+    s.on("duel:resync", (p) => {
+      setMyScore(p.you);
+      setTheirScore(p.opponent);
+      setIndex(p.yourIndex);
+      setValue("");
+    });
     s.on("duel:end", (e) => {
       const live = phaseRef.current;
-      setPhase({ kind: "over", ...e, opponentName: live.kind === "live" ? live.opponent.username : "your opponent" });
+      // A result replayed after reconnecting only matters if we were still playing.
+      if (live.kind !== "live") return;
+      setPhase({ kind: "over", ...e, opponentName: live.opponent.username });
       refresh().catch(() => {});
     });
 
@@ -125,6 +145,7 @@ export default function DuelPage() {
         "challenge:error",
         "duel:start",
         "duel:progress",
+        "duel:resync",
         "duel:end",
         "rematch:waiting",
         "rematch:offered",
@@ -143,16 +164,28 @@ export default function DuelPage() {
 
   const live = phase.kind === "live" ? phase : null;
   const started = live !== null && now >= live.startsAt;
+  const timeUp = live !== null && now >= live.endsAt;
+  const canAnswer = started && !timeUp && connected;
   const question: Question | null = live ? sequenceQuestion(live.seed, index) : null;
 
   useEffect(() => {
-    if (started) inputRef.current?.focus();
-  }, [started, index]);
+    if (canAnswer) inputRef.current?.focus();
+  }, [canAnswer, index]);
+
+  // If the result never arrives (the connection stayed down), don't leave the
+  // player staring at a finished duel.
+  useEffect(() => {
+    if (live && now > live.endsAt + DUEL_RECONNECT_MS + 5000) {
+      setPhase({ kind: "lobby" });
+      setError("Lost touch with the game server before the duel ended. Your profile shows the result.");
+    }
+  }, [live, now]);
 
   const onChange = useCallback(
     (raw: string) => {
       const clean = raw.replace(/\D/g, "").slice(0, 6);
       setValue(clean);
+      if (!canAnswer || Date.now() >= (live?.endsAt ?? 0)) return;
       if (!socket || !live || !question || clean === "" || Number(clean) !== question.answer) return;
       playCorrect();
       // Move on at once; the server confirms and keeps the real score.
@@ -160,7 +193,7 @@ export default function DuelPage() {
       setIndex((i) => i + 1);
       setValue("");
     },
-    [socket, live, question, index],
+    [socket, live, question, index, canAnswer],
   );
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -218,6 +251,11 @@ export default function DuelPage() {
             <span className={`num${secs <= 5 ? " low" : ""}`}>{secs}</span>seconds left
           </span>
         </div>
+        {(timeUp || !connected) && (
+          <p className="notice" role="status">
+            {timeUp ? "Time's up. Counting the answers…" : "Connection lost. Reconnecting… your duel is kept for a few seconds."}
+          </p>
+        )}
         <div className="timer-track" aria-hidden>
           <div className="timer-fill" style={{ transform: `scaleX(${left / total})` }} />
         </div>
@@ -249,11 +287,12 @@ export default function DuelPage() {
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={onKeyDown}
+              disabled={!canAnswer}
             />
           </div>
         )}
         <div className="actions">
-          <button type="button" className="btn ghost" onClick={() => socket?.emit("duel:forfeit")}>
+          <button type="button" className="btn ghost" disabled={timeUp} onClick={() => socket?.emit("duel:forfeit")}>
             Resign
           </button>
         </div>

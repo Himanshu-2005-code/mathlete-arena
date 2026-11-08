@@ -3,6 +3,7 @@ import type { Server, Socket } from "socket.io";
 import {
   type ClientToServerEvents,
   DUEL_COUNTDOWN_MS,
+  DUEL_RECONNECT_MS,
   DUEL_SECONDS,
   REMATCH_WINDOW_MS,
   type DuelEndReason,
@@ -33,6 +34,8 @@ export interface DuelOptions {
   minAnswerMs?: number;
   /** After a wrong answer, further answers are ignored for this long. */
   wrongLockMs?: number;
+  /** How long a dropped player has to reconnect before forfeiting; 0 forfeits at once. */
+  reconnectMs?: number;
 }
 
 interface Player extends DuelPlayerInfo {
@@ -47,6 +50,8 @@ interface Side {
   /** When this side's current question appeared, and until when it's locked out. */
   shownAt: number;
   lockedUntil: number;
+  /** Running while this player's connection is gone; forfeits them when it fires. */
+  dropTimer?: NodeJS.Timeout;
 }
 
 interface Duel {
@@ -95,6 +100,9 @@ export class DuelManager {
   private botRand: () => number;
   private minAnswerMs: number;
   private wrongLockMs: number;
+  private reconnectMs: number;
+  /** Each human's latest result, resent if they reconnect just after missing it. */
+  private lastResult = new Map<number, { at: number; payload: Parameters<ServerToClientEvents["duel:end"]>[0] }>();
 
   constructor(
     private io: IO,
@@ -105,8 +113,11 @@ export class DuelManager {
     this.countdownMs = opts.countdownMs ?? DUEL_COUNTDOWN_MS;
     this.botAfterMs = opts.botAfterMs ?? 10_000;
     this.botRand = opts.botRand ?? Math.random;
-    this.minAnswerMs = opts.minAnswerMs ?? 200;
+    // Low enough that network jitter bunching two quick answers together
+    // doesn't reject a real player, high enough to stop instant scripts.
+    this.minAnswerMs = opts.minAnswerMs ?? 120;
     this.wrongLockMs = opts.wrongLockMs ?? 1000;
+    this.reconnectMs = opts.reconnectMs ?? DUEL_RECONNECT_MS;
     if (this.botAfterMs > 0) ensureBots(db);
     this.matchTimer = setInterval(() => this.matchQueue(), opts.matchIntervalMs ?? 1000);
   }
@@ -116,6 +127,7 @@ export class DuelManager {
     for (const duel of new Set(this.duelByUser.values())) {
       clearTimeout(duel.timer);
       duel.botTimers.forEach(clearTimeout);
+      duel.sides.forEach((s) => clearTimeout(s.dropTimer));
     }
   }
 
@@ -156,6 +168,7 @@ export class DuelManager {
     sockets.add(socket.id);
     this.online.set(userId, sockets);
     this.broadcastPresence();
+    this.resume(userId, socket);
 
     socket.on("queue:join", () => {
       const busy = this.busy(userId);
@@ -215,7 +228,7 @@ export class DuelManager {
       if (!set?.size) this.online.delete(userId);
       if (this.queue.get(userId)?.player.socketId === socket.id) this.queue.delete(userId);
       this.cancelChallenge(userId, socket.id);
-      this.forfeit(userId, socket.id);
+      this.dropped(userId, socket.id);
       if (!this.online.has(userId)) this.cancelRematch(userId, "left");
       this.broadcastPresence();
     });
@@ -346,26 +359,66 @@ export class DuelManager {
     if (!a.bot) this.duelByUser.set(a.id, duel);
     if (!b.bot) this.duelByUser.set(b.id, duel);
 
+    for (const [me, them] of [
+      [duel.sides[0], duel.sides[1]],
+      [duel.sides[1], duel.sides[0]],
+    ] as const) {
+      this.sendStart(duel, me, them);
+    }
+    for (const side of duel.sides) if (side.player.bot) this.scheduleBot(duel, side, duel.startsAt - now);
+  }
+
+  private sendStart(duel: Duel, me: Side, them: Side, resume = false) {
     const info = (p: Player): DuelPlayerInfo => ({
       id: p.id,
       username: p.username,
       rating: p.rating,
       ...(p.bot ? { bot: true } : {}),
     });
-    for (const [me, them] of [
-      [a, b],
-      [b, a],
-    ] as const) {
-      this.send(me, "duel:start", {
-        duelId: duel.id,
-        seed: duel.seed,
-        startsAt: duel.startsAt,
-        endsAt: duel.endsAt,
-        you: info(me),
-        opponent: info(them),
-      });
+    this.send(me.player, "duel:start", {
+      duelId: duel.id,
+      seed: duel.seed,
+      startsAt: duel.startsAt,
+      endsAt: duel.endsAt,
+      serverNow: Date.now(),
+      you: info(me.player),
+      opponent: info(them.player),
+      ...(resume && { resume: { you: me.score, opponent: them.score, yourIndex: me.index } }),
+    });
+  }
+
+  /**
+   * A player's connection dropped. Mid-duel, give them a short window to come
+   * back (phones switch networks, laptops blink) before it counts as leaving.
+   */
+  private dropped(userId: number, socketId: string) {
+    const duel = this.duelByUser.get(userId);
+    if (!duel || duel.over) return;
+    const [me] = this.sideOf(duel, userId);
+    if (me.player.socketId !== socketId) return;
+    if (this.reconnectMs <= 0) return this.finish(duel, "forfeit", userId);
+    clearTimeout(me.dropTimer);
+    me.dropTimer = setTimeout(() => {
+      me.dropTimer = undefined;
+      if (me.player.socketId === socketId) this.finish(duel, "forfeit", userId);
+    }, this.reconnectMs);
+  }
+
+  /** A new connection for this player: pick their duel back up, or replay a result they missed. */
+  private resume(userId: number, socket: Sock) {
+    const duel = this.duelByUser.get(userId);
+    if (duel && !duel.over) {
+      const [me, them] = this.sideOf(duel, userId);
+      // Only take over from a connection that has dropped, not from another open tab.
+      if (!me.dropTimer) return;
+      clearTimeout(me.dropTimer);
+      me.dropTimer = undefined;
+      me.player.socketId = socket.id;
+      this.sendStart(duel, me, them, true);
+      return;
     }
-    for (const side of duel.sides) if (side.player.bot) this.scheduleBot(duel, side, duel.startsAt - now);
+    const last = this.lastResult.get(userId);
+    if (last && Date.now() - last.at < 30_000) socket.emit("duel:end", last.payload);
   }
 
   /** Queue the bot's next answer; it occasionally fumbles and takes longer. */
@@ -405,13 +458,22 @@ export class DuelManager {
     if (me.player.socketId !== socketId) return;
     const now = Date.now();
     if (now < duel.startsAt || now > duel.endsAt) return;
-    if (!a || a.index !== me.index || !Number.isFinite(a.value)) return;
+    if (!a || !Number.isInteger(a.index) || !Number.isFinite(a.value)) return;
+    // The app moves to the next question before the server confirms. If an
+    // earlier answer wasn't counted, the app is ahead: send it back so the two
+    // agree again, instead of silently ignoring everything after.
+    const resync = () => {
+      const them = this.other(duel, me);
+      this.io.to(socketId).emit("duel:resync", { you: me.score, opponent: them.score, yourIndex: me.index });
+    };
+    if (a.index < me.index) return; // a repeat of an answer already counted
+    if (a.index > me.index) return resync();
 
     // The app only ever sends right answers, so wrong ones come from guessing
     // scripts: lock that player out for a moment. Answers faster than anyone
     // could read and type are ignored the same way.
     const shownAt = Math.max(me.shownAt, duel.startsAt);
-    if (now < me.lockedUntil || now - shownAt < this.minAnswerMs) return;
+    if (now < me.lockedUntil || now - shownAt < this.minAnswerMs) return resync();
     if (sequenceQuestion(duel.seed, me.index).answer !== a.value) {
       me.lockedUntil = now + this.wrongLockMs;
       this.io.to(socketId).emit("duel:wrong", { index: me.index });
@@ -433,6 +495,7 @@ export class DuelManager {
     duel.over = true;
     clearTimeout(duel.timer);
     duel.botTimers.forEach(clearTimeout);
+    duel.sides.forEach((s) => clearTimeout(s.dropTimer));
     const [s1, s2] = duel.sides;
     this.duelByUser.delete(s1.player.id);
     this.duelByUser.delete(s2.player.id);
@@ -469,21 +532,27 @@ export class DuelManager {
       })();
 
     const outcome = (mine: 0 | 0.5 | 1): DuelOutcome => (mine === 1 ? "win" : mine === 0 ? "loss" : "draw");
-    this.send(s1.player, "duel:end", {
-      outcome: outcome(result1),
-      reason,
-      you: s1.score,
-      opponent: s2.score,
-      rating: n1,
-      ratingChange: n1 - r1,
-    });
-    this.send(s2.player, "duel:end", {
-      outcome: outcome((1 - result1) as 0 | 0.5 | 1),
-      reason,
-      you: s2.score,
-      opponent: s1.score,
-      rating: n2,
-      ratingChange: n2 - r2,
-    });
+    const results = [
+      [s1, { outcome: outcome(result1), reason, you: s1.score, opponent: s2.score, rating: n1, ratingChange: n1 - r1 }],
+      [
+        s2,
+        {
+          outcome: outcome((1 - result1) as 0 | 0.5 | 1),
+          reason,
+          you: s2.score,
+          opponent: s1.score,
+          rating: n2,
+          ratingChange: n2 - r2,
+        },
+      ],
+    ] as const;
+    const at = Date.now();
+    for (const [side, payload] of results) {
+      if (side.player.bot) continue;
+      this.lastResult.set(side.player.id, { at, payload });
+      this.send(side.player, "duel:end", payload);
+    }
+    // Forget results nobody came back for.
+    for (const [id, r] of this.lastResult) if (at - r.at > 60_000) this.lastResult.delete(id);
   }
 }

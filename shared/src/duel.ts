@@ -4,6 +4,8 @@ import { createRng } from "./rng";
 /** Duel rules shared by server and client. */
 export const DUEL_SECONDS = 60;
 export const DUEL_COUNTDOWN_MS = 3000;
+/** How long a player who drops mid-duel has to reconnect before it counts as leaving. */
+export const DUEL_RECONNECT_MS = 10_000;
 export const START_RATING = 1000;
 export const ELO_K = 32;
 
@@ -81,12 +83,19 @@ export interface ServerToClientEvents {
   "duel:start": (d: {
     duelId: string;
     seed: number;
+    /** Server clock times. Compare with serverNow, not the device clock, which may be off. */
     startsAt: number;
     endsAt: number;
+    /** The server's clock when this was sent. */
+    serverNow: number;
     you: DuelPlayerInfo;
     opponent: DuelPlayerInfo;
+    /** Set when rejoining a duel already under way after a dropped connection. */
+    resume?: { you: number; opponent: number; yourIndex: number };
   }) => void;
   "duel:progress": (p: { you: number; opponent: number; yourIndex: number }) => void;
+  /** An answer wasn't counted; go back to this question so client and server agree. */
+  "duel:resync": (p: { you: number; opponent: number; yourIndex: number }) => void;
   "duel:wrong": (w: { index: number }) => void;
   /** Your opponent asked for a rematch; send rematch:request to accept. */
   "rematch:offered": (r: { from: string }) => void;

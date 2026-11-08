@@ -38,6 +38,7 @@ async function setup(durationMs = 1500, extra: DuelOptions = {}) {
     botAfterMs: 0,
     minAnswerMs: 0,
     wrongLockMs: 0,
+    reconnectMs: 0,
     ...extra,
   });
   await new Promise<void>((r) => server.listen(0, r));
@@ -55,7 +56,15 @@ async function setup(durationMs = 1500, extra: DuelOptions = {}) {
     await new Promise<void>((r) => sock.on("connect", () => r()));
     return { sock, token: res.body.token as string };
   }
-  return { app, db, player };
+  /** A new connection for an existing player, like a page reconnecting, and the first `event` it gets. */
+  async function reconnect<E extends keyof ServerToClientEvents>(token: string, event: E) {
+    const sock: Client = connect(url, { auth: { token }, transports: ["websocket"] });
+    cleanups.push(() => sock.close());
+    const got = once(sock, event);
+    await new Promise<void>((r) => sock.on("connect", () => r()));
+    return { sock, got };
+  }
+  return { app, db, player, reconnect };
 }
 
 const once = <E extends keyof ServerToClientEvents>(s: Client, e: E) =>
@@ -172,6 +181,83 @@ describe("duels", () => {
     const endA = once(a.sock, "duel:end");
     b.sock.disconnect();
     expect(await endA).toMatchObject({ outcome: "win", reason: "forfeit", ratingChange: 16 });
+  });
+
+  it("sends the server clock with the start, and sends an app that got ahead back to the right question", async () => {
+    const { player } = await setup(3000, { minAnswerMs: 150 });
+    const a = await player("fastfinger");
+    const b = await player("opponent9");
+    const startA = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const da = await startA;
+    expect(Math.abs(da.serverNow - Date.now())).toBeLessThan(1000);
+    expect(da.endsAt - da.startsAt).toBe(3000);
+    await sleep(da.startsAt - Date.now() + 200);
+    const right = (i: number) => ({ index: i, value: sequenceQuestion(da.seed, i).answer });
+
+    // Question 0 counts; question 1 arrives too soon and doesn't; the app has
+    // already moved on to question 2, so the server sends it back to question 1.
+    const progressed = once(a.sock, "duel:progress");
+    a.sock.emit("duel:answer", right(0));
+    expect(await progressed).toMatchObject({ you: 1, yourIndex: 1 });
+    const back = once(a.sock, "duel:resync");
+    a.sock.emit("duel:answer", right(1));
+    a.sock.emit("duel:answer", right(2));
+    expect(await back).toEqual({ you: 1, opponent: 0, yourIndex: 1 });
+
+    // Answering question 1 again after that counts, so play carries on normally.
+    await sleep(200);
+    const again = once(a.sock, "duel:progress");
+    a.sock.emit("duel:answer", right(1));
+    expect(await again).toMatchObject({ you: 2, yourIndex: 2 });
+  });
+
+  it("lets a player who drops mid-duel reconnect and carry on, and forfeits them if they don't", async () => {
+    const { player, reconnect } = await setup(3000, { reconnectMs: 400 });
+    const a = await player("wobbly");
+    const b = await player("steady2");
+    const startA = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const da = await startA;
+    await sleep(da.startsAt - Date.now() + 20);
+    const progressed = once(a.sock, "duel:progress");
+    a.sock.emit("duel:answer", { index: 0, value: sequenceQuestion(da.seed, 0).answer });
+    await progressed;
+
+    // Drop and come back within the window: same duel, score and question kept.
+    let ended = false;
+    b.sock.on("duel:end", () => (ended = true));
+    a.sock.disconnect();
+    await sleep(150);
+    const { sock: back, got } = await reconnect(a.token, "duel:start");
+    const resumed = await got;
+    expect(resumed).toMatchObject({ duelId: da.duelId, resume: { you: 1, opponent: 0, yourIndex: 1 } });
+    await sleep(400);
+    expect(ended).toBe(false);
+    const more = once(back, "duel:progress");
+    back.emit("duel:answer", { index: 1, value: sequenceQuestion(da.seed, 1).answer });
+    expect(await more).toMatchObject({ you: 2 });
+
+    // Drop and stay away: it counts as leaving once the window passes.
+    const endB = once(b.sock, "duel:end");
+    back.disconnect();
+    expect(await endB).toMatchObject({ outcome: "win", reason: "forfeit" });
+  });
+
+  it("replays a result to a player who reconnects just after missing it", async () => {
+    const { player, reconnect } = await setup(600, { reconnectMs: 5000 });
+    const a = await player("blinky");
+    const b = await player("watcher");
+    const startA = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const da = await startA;
+    a.sock.disconnect();
+    await sleep(da.endsAt - Date.now() + 100);
+    const { got } = await reconnect(a.token, "duel:end");
+    expect(await got).toMatchObject({ reason: "time", outcome: "draw" });
   });
 
   it("keeps far-apart ratings apart until they have waited", async () => {
