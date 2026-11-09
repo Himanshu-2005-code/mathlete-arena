@@ -30,8 +30,16 @@ export interface DuelOptions {
   botAfterMs?: number;
   /** Randomness for bot timing, injectable for tests. */
   botRand?: () => number;
-  /** Fastest a correct answer may follow the previous one (anti-script). */
+  /**
+   * Anti-script speed limit: on average, at most one answer per this many ms.
+   * Measured as a budget rather than per gap, because network delay can bunch
+   * answers a person typed well apart. 0 turns the limit off.
+   */
   minAnswerMs?: number;
+  /** How many answers may arrive bunched together within that budget. */
+  answerBurst?: number;
+  /** Answers arriving this long after time are still counted (they were sent in time). */
+  lateMs?: number;
   /** After a wrong answer, further answers are ignored for this long. */
   wrongLockMs?: number;
   /** How long a dropped player has to reconnect before forfeiting; 0 forfeits at once. */
@@ -48,7 +56,9 @@ interface Side {
   score: number;
   index: number;
   /** When this side's current question appeared, and until when it's locked out. */
-  shownAt: number;
+  /** Anti-script budget: answers allowed right now, refilled over time. */
+  allowance: number;
+  allowanceAt: number;
   lockedUntil: number;
   /** Running while this player's connection is gone; forfeits them when it fires. */
   dropTimer?: NodeJS.Timeout;
@@ -99,6 +109,8 @@ export class DuelManager {
   private botAfterMs: number;
   private botRand: () => number;
   private minAnswerMs: number;
+  private answerBurst: number;
+  private lateMs: number;
   private wrongLockMs: number;
   private reconnectMs: number;
   /** Each human's latest result, resent if they reconnect just after missing it. */
@@ -116,6 +128,9 @@ export class DuelManager {
     // Low enough that network jitter bunching two quick answers together
     // doesn't reject a real player, high enough to stop instant scripts.
     this.minAnswerMs = opts.minAnswerMs ?? 120;
+    this.answerBurst = opts.answerBurst ?? 4;
+    // Covers the trip from a far-away player (India to the US is ~150-300 ms).
+    this.lateMs = opts.lateMs ?? 1000;
     this.wrongLockMs = opts.wrongLockMs ?? 1000;
     this.reconnectMs = opts.reconnectMs ?? DUEL_RECONNECT_MS;
     if (this.botAfterMs > 0) ensureBots(db);
@@ -346,10 +361,11 @@ export class DuelManager {
       startsAt: now + this.countdownMs,
       endsAt: now + this.countdownMs + this.durationMs,
       sides: [
-        { player: a, score: 0, index: 0, shownAt: 0, lockedUntil: 0 },
-        { player: b, score: 0, index: 0, shownAt: 0, lockedUntil: 0 },
+        { player: a, score: 0, index: 0, allowance: 1, allowanceAt: now + this.countdownMs, lockedUntil: 0 },
+        { player: b, score: 0, index: 0, allowance: 1, allowanceAt: now + this.countdownMs, lockedUntil: 0 },
       ],
-      timer: setTimeout(() => this.finish(duel, "time"), this.countdownMs + this.durationMs),
+      // Wait a moment past the end for answers already on their way.
+      timer: setTimeout(() => this.finish(duel, "time"), this.countdownMs + this.durationMs + this.lateMs),
       botTimers: [],
       over: false,
     };
@@ -442,7 +458,6 @@ export class DuelManager {
     const them = this.other(duel, me);
     me.score++;
     me.index++;
-    me.shownAt = Date.now();
     this.send(me.player, "duel:progress", { you: me.score, opponent: them.score, yourIndex: me.index });
     this.send(them.player, "duel:progress", { you: them.score, opponent: me.score, yourIndex: them.index });
   }
@@ -457,7 +472,7 @@ export class DuelManager {
     const [me] = this.sideOf(duel, userId);
     if (me.player.socketId !== socketId) return;
     const now = Date.now();
-    if (now < duel.startsAt || now > duel.endsAt) return;
+    if (now < duel.startsAt || now > duel.endsAt + this.lateMs) return;
     if (!a || !Number.isInteger(a.index) || !Number.isFinite(a.value)) return;
     // The app moves to the next question before the server confirms. If an
     // earlier answer wasn't counted, the app is ahead: send it back so the two
@@ -470,16 +485,31 @@ export class DuelManager {
     if (a.index > me.index) return resync();
 
     // The app only ever sends right answers, so wrong ones come from guessing
-    // scripts: lock that player out for a moment. Answers faster than anyone
-    // could read and type are ignored the same way.
-    const shownAt = Math.max(me.shownAt, duel.startsAt);
-    if (now < me.lockedUntil || now - shownAt < this.minAnswerMs) return resync();
+    // scripts: lock that player out for a moment. Answers coming in faster than
+    // anyone could keep up are refused the same way.
+    if (now < me.lockedUntil || !this.spendAllowance(me, now)) return resync();
     if (sequenceQuestion(duel.seed, me.index).answer !== a.value) {
       me.lockedUntil = now + this.wrongLockMs;
       this.io.to(socketId).emit("duel:wrong", { index: me.index });
       return;
     }
     this.scoreCorrect(duel, me);
+  }
+
+  /**
+   * Each answer spends one unit of a budget that refills at one per
+   * minAnswerMs, up to answerBurst. A person's answers average far slower than
+   * the refill, so bunching in transit never runs the budget dry; a script
+   * firing answers nonstop does.
+   */
+  private spendAllowance(me: Side, now: number): boolean {
+    if (this.minAnswerMs <= 0) return true;
+    const refilled = Math.max(0, now - me.allowanceAt) / this.minAnswerMs;
+    me.allowance = Math.min(this.answerBurst, me.allowance + refilled);
+    me.allowanceAt = now;
+    if (me.allowance < 1) return false;
+    me.allowance -= 1;
+    return true;
   }
 
   private forfeit(userId: number, socketId: string) {

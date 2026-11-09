@@ -165,6 +165,10 @@ export default function DuelPage() {
   const live = phase.kind === "live" ? phase : null;
   const started = live !== null && now >= live.startsAt;
   const timeUp = live !== null && now >= live.endsAt;
+  // Every right answer is one point and one question, so count your own answers
+  // straight away instead of waiting a round trip for the server. If one doesn't
+  // count, the server's resync moves the question back and this drops with it.
+  const shownScore = Math.max(myScore, index);
   const canAnswer = started && !timeUp && connected;
   const question: Question | null = live ? sequenceQuestion(live.seed, index) : null;
 
@@ -263,8 +267,8 @@ export default function DuelPage() {
         <div className="scoreboard">
           <div className="score-row">
             <span className="score-name">{live.you.username}</span>
-            <span className="num score-n">{myScore}</span>
-            <Tally count={myScore} label="Your score" />
+            <span className="num score-n">{shownScore}</span>
+            <Tally count={shownScore} label="Your score" />
           </div>
           <div className="score-row them">
             <span className="score-name">{live.opponent.username}</span>

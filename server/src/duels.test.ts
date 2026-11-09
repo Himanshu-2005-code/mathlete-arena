@@ -39,6 +39,7 @@ async function setup(durationMs = 1500, extra: DuelOptions = {}) {
     minAnswerMs: 0,
     wrongLockMs: 0,
     reconnectMs: 0,
+    lateMs: 0,
     ...extra,
   });
   await new Promise<void>((r) => server.listen(0, r));
@@ -121,8 +122,8 @@ describe("duels", () => {
     expect(board.rows.map((r: { username: string }) => r.username)).toEqual(["alice", "bobby"]);
   });
 
-  it("ignores instant answers and locks out guessing", async () => {
-    const { player } = await setup(3000, { minAnswerMs: 150, wrongLockMs: 400 });
+  it("locks out guessing", async () => {
+    const { player } = await setup(3000, { wrongLockMs: 400 });
     const a = await player("guesser");
     const b = await player("steady");
     const startA = once(a.sock, "duel:start");
@@ -134,13 +135,6 @@ describe("duels", () => {
     let progress = 0;
     a.sock.on("duel:progress", () => progress++);
 
-    // Too soon after the question appeared: ignored.
-    a.sock.emit("duel:answer", right(0));
-    await sleep(60);
-    expect(progress).toBe(0);
-
-    // After the minimum time it counts.
-    await sleep(120);
     a.sock.emit("duel:answer", right(0));
     await sleep(60);
     expect(progress).toBe(1);
@@ -184,7 +178,8 @@ describe("duels", () => {
   });
 
   it("sends the server clock with the start, and sends an app that got ahead back to the right question", async () => {
-    const { player } = await setup(3000, { minAnswerMs: 150 });
+    // A budget of one answer per 150 ms with no bunching allowed, so the second of two back-to-back answers is refused.
+    const { player } = await setup(3000, { minAnswerMs: 150, answerBurst: 1 });
     const a = await player("fastfinger");
     const b = await player("opponent9");
     const startA = once(a.sock, "duel:start");
@@ -211,6 +206,65 @@ describe("duels", () => {
     const again = once(a.sock, "duel:progress");
     a.sock.emit("duel:answer", right(1));
     expect(await again).toMatchObject({ you: 2, yourIndex: 2 });
+  });
+
+  it("counts real answers that the network delivers bunched together", async () => {
+    // Real-world settings: a far-away player's answers, typed 300-400 ms
+    // apart, can still reach the server a few milliseconds apart.
+    const { player } = await setup(5000, { minAnswerMs: 120 });
+    const a = await player("farfaraway");
+    const b = await player("nearby01");
+    const startA = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const da = await startA;
+    let resyncs = 0;
+    a.sock.on("duel:resync", () => resyncs++);
+    await sleep(da.startsAt - Date.now() + 400);
+    const right = (i: number) => ({ index: i, value: sequenceQuestion(da.seed, i).answer });
+    let last = 0;
+    a.sock.on("duel:progress", (p) => (last = p.you));
+    for (const burst of [[0, 1], [2, 3, 4], [5], [6, 7]]) {
+      for (const i of burst) a.sock.emit("duel:answer", right(i));
+      await sleep(burst.length * 350);
+    }
+    await sleep(100);
+    expect(resyncs).toBe(0);
+    expect(last).toBe(8);
+  });
+
+  it("still stops a script answering far faster than anyone can type", async () => {
+    const { player } = await setup(5000, { minAnswerMs: 120 });
+    const a = await player("speedbot1");
+    const b = await player("honest01");
+    const startA = once(a.sock, "duel:start");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const da = await startA;
+    await sleep(da.startsAt - Date.now() + 400);
+    let last = 0;
+    a.sock.on("duel:progress", (p) => (last = p.you));
+    // A script fires 40 answers in one second. A person can't keep up ~8 a second.
+    for (let i = 0; i < 40; i++) {
+      a.sock.emit("duel:answer", { index: last, value: sequenceQuestion(da.seed, last).answer });
+      await sleep(25);
+    }
+    expect(last).toBeLessThan(15);
+  });
+
+  it("counts answers given just before time that arrive just after it", async () => {
+    const { player } = await setup(800, { lateMs: 400 });
+    const a = await player("lastsecond");
+    const b = await player("onthebell");
+    const startA = once(a.sock, "duel:start");
+    const endA = once(a.sock, "duel:end");
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    const da = await startA;
+    // Typed at the buzzer, delivered 200 ms after the server's clock ran out.
+    await sleep(da.endsAt - Date.now() + 200);
+    a.sock.emit("duel:answer", { index: 0, value: sequenceQuestion(da.seed, 0).answer });
+    expect(await endA).toMatchObject({ you: 1, outcome: "win" });
   });
 
   it("lets a player who drops mid-duel reconnect and carry on, and forfeits them if they don't", async () => {
