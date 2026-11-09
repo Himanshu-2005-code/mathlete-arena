@@ -10,6 +10,7 @@ import {
   type DuelPlayerInfo,
   DUEL_RECONNECT_MS,
   type Question,
+  REMATCH_WINDOW_MS,
   sequenceQuestion,
 } from "@mathlete/shared";
 import { Tally } from "@/components/Tally";
@@ -31,7 +32,16 @@ type Phase =
       rating: number;
       ratingChange: number;
       opponentName: string;
+      /** When the result arrived here, for the rematch time limit. */
+      endedAt: number;
     };
+
+type RematchState =
+  | { kind: "none" }
+  | { kind: "asking" } // clicked, waiting for the server to say it's sent
+  | { kind: "waiting" } // sent, waiting for the opponent
+  | { kind: "offered"; from: string }
+  | { kind: "closed" }; // the rematch window has passed
 
 const HEADLINE: Record<DuelOutcome, string> = { win: "You won.", loss: "You lost.", draw: "Draw." };
 
@@ -44,9 +54,7 @@ export default function DuelPage() {
   const [error, setError] = useState("");
   const [joinCode, setJoinCode] = useState("");
   // Rematch state on the results screen.
-  const [rematch, setRematch] = useState<{ kind: "none" } | { kind: "waiting" } | { kind: "offered"; from: string }>({
-    kind: "none",
-  });
+  const [rematch, setRematch] = useState<RematchState>({ kind: "none" });
   const [rematchMsg, setRematchMsg] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
@@ -74,14 +82,35 @@ export default function DuelPage() {
     s.on("disconnect", onDisconnect);
     s.on("connect_error", onConnectError);
     s.on("presence", setPresence);
-    s.on("queue:joined", () => setPhase({ kind: "searching", since: Date.now() }));
-    s.on("queue:left", () => setPhase({ kind: "lobby" }));
-    s.on("challenge:created", ({ code }) => setPhase({ kind: "hosting", code }));
-    s.on("challenge:error", ({ message }) => setError(message));
-    s.on("rematch:waiting", () => setRematch({ kind: "waiting" }));
-    s.on("rematch:offered", ({ from }) => setRematch({ kind: "offered", from }));
-    s.on("rematch:declined", ({ message }) => {
+    // Looking for a new game ends any rematch talk (the server tells the other player).
+    s.on("queue:joined", () => {
       setRematch({ kind: "none" });
+      setPhase({ kind: "searching", since: Date.now() });
+    });
+    s.on("queue:left", () => setPhase({ kind: "lobby" }));
+    s.on("challenge:created", ({ code }) => {
+      setRematch({ kind: "none" });
+      setPhase({ kind: "hosting", code });
+    });
+    s.on("challenge:error", ({ message }) => setError(message));
+    // Rematch news matters on the results screen, and offers also show in the
+    // lobby (where you land after a refresh). Mid-game it's stale, so ignore it.
+    const onResults = () => phaseRef.current.kind === "over";
+    const inLobby = () => phaseRef.current.kind === "lobby";
+    s.on("rematch:waiting", () => onResults() && setRematch({ kind: "waiting" }));
+    s.on("rematch:offered", ({ from }) => {
+      if (!onResults() && !inLobby()) return;
+      setRematch({ kind: "offered", from });
+      setRematchMsg("");
+    });
+    s.on("rematch:declined", ({ message }) => {
+      if (inLobby()) {
+        // Only an offer shown in the lobby can be withdrawn there.
+        setRematch((r) => (r.kind === "offered" ? { kind: "none" } : r));
+        return;
+      }
+      if (!onResults()) return;
+      setRematch((r) => (r.kind === "closed" ? r : { kind: "none" }));
       setRematchMsg(message);
     });
     s.on("duel:start", (d) => {
@@ -120,7 +149,9 @@ export default function DuelPage() {
       const live = phaseRef.current;
       // A result replayed after reconnecting only matters if we were still playing.
       if (live.kind !== "live") return;
-      setPhase({ kind: "over", ...e, opponentName: live.opponent.username });
+      setRematch({ kind: "none" });
+      setRematchMsg("");
+      setPhase({ kind: "over", ...e, opponentName: live.opponent.username, endedAt: Date.now() });
       refresh().catch(() => {});
     });
 
@@ -175,6 +206,27 @@ export default function DuelPage() {
   useEffect(() => {
     if (canAnswer) inputRef.current?.focus();
   }, [canAnswer, index]);
+
+  // Close the rematch window on time, matching the server.
+  const endedAt = phase.kind === "over" ? phase.endedAt : null;
+  useEffect(() => {
+    if (endedAt === null) return;
+    const t = setTimeout(
+      () => setRematch((r) => (r.kind === "waiting" || r.kind === "offered" ? r : { kind: "closed" })),
+      Math.max(0, endedAt + REMATCH_WINDOW_MS - Date.now()),
+    );
+    return () => clearTimeout(t);
+  }, [endedAt]);
+
+  // If the server never answers a Rematch click, don't leave the button stuck.
+  useEffect(() => {
+    if (rematch.kind !== "asking") return;
+    const t = setTimeout(() => {
+      setRematch({ kind: "none" });
+      setRematchMsg("No answer from the game server. Try again.");
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [rematch.kind]);
 
   // If the result never arrives (the connection stayed down), don't leave the
   // player staring at a finished duel.
@@ -351,22 +403,45 @@ export default function DuelPage() {
         )}
         <div className="actions">
           {rematch.kind === "waiting" ? (
-            <button type="button" className="btn ghost" onClick={() => {
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
                 socket?.emit("rematch:cancel");
                 setRematch({ kind: "none" });
-              }}>
+                setRematchMsg("");
+              }}
+            >
               Cancel rematch
+            </button>
+          ) : rematch.kind === "closed" ? (
+            <button type="button" className="btn" disabled title="Rematches can be asked for up to a minute after a duel">
+              Rematch closed
             </button>
           ) : (
             <button
               type="button"
               className="btn"
+              disabled={rematch.kind === "asking" || !connected}
               onClick={() => {
                 setRematchMsg("");
+                setRematch({ kind: "asking" });
                 socket?.emit("rematch:request");
               }}
             >
-              {rematch.kind === "offered" ? "Accept rematch" : "Rematch"}
+              {rematch.kind === "offered" ? "Accept rematch" : rematch.kind === "asking" ? "Asking…" : "Rematch"}
+            </button>
+          )}
+          {rematch.kind === "offered" && (
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                socket?.emit("rematch:cancel");
+                setRematch({ kind: "none" });
+              }}
+            >
+              Decline
             </button>
           )}
           <button
@@ -374,12 +449,22 @@ export default function DuelPage() {
             className="btn ghost"
             onClick={() => {
               setError("");
+              // Joining the queue also tells a waiting opponent you've moved on.
               socket?.emit("queue:join");
             }}
           >
             Find another match
           </button>
-          <button type="button" className="btn ghost" onClick={() => setPhase({ kind: "lobby" })}>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              if (rematch.kind === "waiting" || rematch.kind === "offered") socket?.emit("rematch:cancel");
+              setRematch({ kind: "none" });
+              setRematchMsg("");
+              setPhase({ kind: "lobby" });
+            }}
+          >
             Back to lobby
           </button>
         </div>
@@ -406,6 +491,29 @@ export default function DuelPage() {
           : "Connecting to the game server…"}{" "}
         Your rating is <strong>{user.rating}</strong>.
       </p>
+
+      {rematch.kind === "offered" && (
+        <div className="notice" role="status">
+          <p>
+            <strong>{rematch.from}</strong> wants a rematch.
+          </p>
+          <div className="actions">
+            <button type="button" className="btn" disabled={!connected} onClick={() => socket?.emit("rematch:request")}>
+              Accept rematch
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                socket?.emit("rematch:cancel");
+                setRematch({ kind: "none" });
+              }}
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p className="error" role="alert">

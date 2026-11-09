@@ -44,6 +44,8 @@ export interface DuelOptions {
   wrongLockMs?: number;
   /** How long a dropped player has to reconnect before forfeiting; 0 forfeits at once. */
   reconnectMs?: number;
+  /** How long after a duel either player can ask for a rematch. */
+  rematchMs?: number;
 }
 
 interface Player extends DuelPlayerInfo {
@@ -93,6 +95,8 @@ function newCode(): string {
  * The server owns the truth: it generates each question from the duel seed,
  * checks every answer, keeps the score, and decides the result.
  */
+const userRoom = (userId: number) => `user:${userId}`;
+
 export class DuelManager {
   private queue = new Map<number, { player: Player; since: number }>();
   private challenges = new Map<string, Player>();
@@ -101,8 +105,8 @@ export class DuelManager {
   private online = new Map<number, Set<string>>();
   /** Each human's last opponent, for rematches. */
   private lastOpponent = new Map<number, { opponent: Player; me: Player; until: number }>();
-  /** Open rematch requests: requester id -> opponent id. */
-  private rematchAsks = new Map<number, number>();
+  /** Open rematch requests by requester: who it's for, which tab asked, and when it lapses. */
+  private rematchAsks = new Map<number, { target: number; socketId: string; timer: NodeJS.Timeout }>();
   private matchTimer: NodeJS.Timeout;
   private durationMs: number;
   private countdownMs: number;
@@ -113,6 +117,7 @@ export class DuelManager {
   private lateMs: number;
   private wrongLockMs: number;
   private reconnectMs: number;
+  private rematchMs: number;
   /** Each human's latest result, resent if they reconnect just after missing it. */
   private lastResult = new Map<number, { at: number; payload: Parameters<ServerToClientEvents["duel:end"]>[0] }>();
 
@@ -133,6 +138,7 @@ export class DuelManager {
     this.lateMs = opts.lateMs ?? 1000;
     this.wrongLockMs = opts.wrongLockMs ?? 1000;
     this.reconnectMs = opts.reconnectMs ?? DUEL_RECONNECT_MS;
+    this.rematchMs = opts.rematchMs ?? REMATCH_WINDOW_MS;
     if (this.botAfterMs > 0) ensureBots(db);
     this.matchTimer = setInterval(() => this.matchQueue(), opts.matchIntervalMs ?? 1000);
   }
@@ -144,6 +150,7 @@ export class DuelManager {
       duel.botTimers.forEach(clearTimeout);
       duel.sides.forEach((s) => clearTimeout(s.dropTimer));
     }
+    for (const ask of this.rematchAsks.values()) clearTimeout(ask.timer);
   }
 
   private loadPlayer(userId: number, socketId: string): Player | null {
@@ -182,6 +189,9 @@ export class DuelManager {
     const sockets = this.online.get(userId) ?? new Set();
     sockets.add(socket.id);
     this.online.set(userId, sockets);
+    // Messages meant for a person rather than one connection go to this room,
+    // so they still arrive after a refresh or reconnect.
+    void socket.join(userRoom(userId));
     this.broadcastPresence();
     this.resume(userId, socket);
 
@@ -190,7 +200,7 @@ export class DuelManager {
       if (busy) return void socket.emit("challenge:error", { message: busy });
       const player = this.loadPlayer(userId, socket.id);
       if (!player) return;
-      this.cancelRematch(userId, "cancelled");
+      this.cancelRematch(userId, "moved on");
       this.queue.set(userId, { player, since: Date.now() });
       socket.emit("queue:joined");
       this.broadcastPresence();
@@ -209,6 +219,7 @@ export class DuelManager {
       if (busy) return void socket.emit("challenge:error", { message: busy });
       const player = this.loadPlayer(userId, socket.id);
       if (!player) return;
+      this.cancelRematch(userId, "moved on");
       let code = newCode();
       while (this.challenges.has(code)) code = newCode();
       this.challenges.set(code, player);
@@ -235,7 +246,7 @@ export class DuelManager {
     socket.on("duel:answer", (a) => this.answer(userId, socket.id, a));
     socket.on("duel:forfeit", () => this.forfeit(userId, socket.id));
     socket.on("rematch:request", () => this.requestRematch(userId, socket.id));
-    socket.on("rematch:cancel", () => this.cancelRematch(userId, "cancelled"));
+    socket.on("rematch:cancel", () => this.cancelRematch(userId, "declined"));
 
     socket.on("disconnect", () => {
       const set = this.online.get(userId);
@@ -245,18 +256,37 @@ export class DuelManager {
       this.cancelChallenge(userId, socket.id);
       this.dropped(userId, socket.id);
       if (!this.online.has(userId)) this.cancelRematch(userId, "left");
+      else this.cancelRematchFrom(userId, socket.id);
       this.broadcastPresence();
     });
   }
 
+  private toUser<E extends keyof ServerToClientEvents>(
+    userId: number,
+    event: E,
+    ...args: Parameters<ServerToClientEvents[E]>
+  ) {
+    (this.io.to(userRoom(userId)).emit as (e: E, ...a: Parameters<ServerToClientEvents[E]>) => boolean)(
+      event,
+      ...args,
+    );
+  }
+
+  /** A connection this player still has open: the preferred one if it's alive, else any. */
+  private liveSocket(userId: number, preferred?: string): string | null {
+    const sockets = this.online.get(userId);
+    if (!sockets?.size) return null;
+    if (preferred && sockets.has(preferred)) return preferred;
+    return sockets.values().next().value ?? null;
+  }
+
   private requestRematch(userId: number, socketId: string) {
     const last = this.lastOpponent.get(userId);
-    const sock = this.io.to(socketId);
-    if (!last || Date.now() > last.until) {
-      return void sock.emit("rematch:declined", { message: "Too late for a rematch. Find a new match instead." });
-    }
+    const decline = (message: string) => this.io.to(socketId).emit("rematch:declined", { message });
+    if (!last || Date.now() > last.until) return decline("Too late for a rematch. Find a new match instead.");
+    if (this.rematchAsks.has(userId)) return; // already asked; a double click changes nothing
     const busy = this.busy(userId);
-    if (busy) return void sock.emit("rematch:declined", { message: busy });
+    if (busy) return decline(busy);
     const me = this.loadPlayer(userId, socketId);
     if (!me) return;
     const them = last.opponent;
@@ -269,43 +299,72 @@ export class DuelManager {
       return;
     }
 
-    if (this.rematchAsks.get(them.id) === userId) {
-      // They asked first, so this is an accept.
-      this.rematchAsks.delete(them.id);
-      if (this.busy(them.id) || !this.online.has(them.id)) {
-        return void sock.emit("rematch:declined", { message: `${them.username} is no longer available.` });
-      }
-      const opponent = this.loadPlayer(them.id, them.socketId);
+    const unavailable = this.busy(them.id) || !this.online.has(them.id);
+    const theirAsk = this.rematchAsks.get(them.id);
+    if (theirAsk?.target === userId) {
+      // They asked first, so this is an accept. Play on the tab they asked from
+      // if it's still open, otherwise any tab they have.
+      this.dropAsk(them.id);
+      const theirSocket = this.liveSocket(them.id, theirAsk.socketId);
+      if (unavailable || !theirSocket) return decline(`${them.username} is no longer available.`);
+      const opponent = this.loadPlayer(them.id, theirSocket);
       if (opponent) this.startDuel(opponent, me);
       return;
     }
+    if (unavailable) return decline(`${them.username} is no longer available.`);
 
-    if (this.busy(them.id) || !this.online.has(them.id)) {
-      return void sock.emit("rematch:declined", { message: `${them.username} is no longer available.` });
-    }
-    this.rematchAsks.set(userId, them.id);
-    sock.emit("rematch:waiting", { opponent: them.username });
-    this.io.to(them.socketId).emit("rematch:offered", { from: me.username });
+    // Ask, and let the offer lapse with the rematch window.
+    const timer = setTimeout(
+      () => {
+        if (this.rematchAsks.get(userId)?.timer !== timer) return;
+        this.rematchAsks.delete(userId);
+        this.toUser(userId, "rematch:declined", { message: `${them.username} didn't answer in time.` });
+        this.toUser(them.id, "rematch:declined", { message: "The rematch offer expired." });
+      },
+      Math.max(0, last.until - Date.now()),
+    );
+    this.rematchAsks.set(userId, { target: them.id, socketId, timer });
+    this.toUser(userId, "rematch:waiting", { opponent: them.username });
+    this.toUser(them.id, "rematch:offered", { from: me.username });
   }
 
-  /** Withdraw a request, and tell whoever it was aimed at (or who aimed one at us). */
-  private cancelRematch(userId: number, why: "cancelled" | "left") {
-    const target = this.rematchAsks.get(userId);
-    const name = this.lastOpponent.get(target ?? -1)?.opponent.username ?? "Your opponent";
-    if (target !== undefined) {
-      this.rematchAsks.delete(userId);
-      const t = this.lastOpponent.get(target);
-      if (t) this.io.to(t.me.socketId).emit("rematch:declined", { message: `${name} withdrew the rematch.` });
+  private dropAsk(asker: number) {
+    const ask = this.rematchAsks.get(asker);
+    if (!ask) return;
+    clearTimeout(ask.timer);
+    this.rematchAsks.delete(asker);
+  }
+
+  /**
+   * End any rematch talk involving this player and tell the other side why:
+   * withdrawn (their own ask), declined (an ask to them), left the site, or
+   * started another game.
+   */
+  private cancelRematch(userId: number, why: "declined" | "left" | "moved on") {
+    const name = this.lastOpponent.get(userId)?.me.username ?? "Your opponent";
+    const mine = this.rematchAsks.get(userId);
+    if (mine) {
+      this.dropAsk(userId);
+      const message =
+        why === "left" ? `${name} left.` : why === "moved on" ? `${name} started another game.` : `${name} withdrew the rematch.`;
+      this.toUser(mine.target, "rematch:declined", { message });
     }
-    for (const [asker, aimedAt] of this.rematchAsks) {
-      if (aimedAt !== userId) continue;
-      this.rematchAsks.delete(asker);
-      const a = this.lastOpponent.get(asker);
-      if (a) {
-        const msg = why === "left" ? `${a.opponent.username} left.` : `${a.opponent.username} declined the rematch.`;
-        this.io.to(a.me.socketId).emit("rematch:declined", { message: msg });
-      }
+    for (const [asker, ask] of this.rematchAsks) {
+      if (ask.target !== userId) continue;
+      this.dropAsk(asker);
+      const message =
+        why === "left"
+          ? `${name} left.`
+          : why === "moved on"
+            ? `${name} started another game.`
+            : `${name} declined the rematch.`;
+      this.toUser(asker, "rematch:declined", { message });
     }
+  }
+
+  /** The tab that asked for a rematch closed, but the player has others open: withdraw it. */
+  private cancelRematchFrom(userId: number, socketId: string) {
+    if (this.rematchAsks.get(userId)?.socketId === socketId) this.cancelRematch(userId, "declined");
   }
 
   private cancelChallenge(userId: number, socketId: string) {
@@ -369,8 +428,9 @@ export class DuelManager {
       botTimers: [],
       over: false,
     };
-    this.rematchAsks.delete(a.id);
-    this.rematchAsks.delete(b.id);
+    // Starting any other duel ends rematch talk with previous opponents.
+    if (!a.bot) this.cancelRematch(a.id, "moved on");
+    if (!b.bot) this.cancelRematch(b.id, "moved on");
     // Bots can play several people at once, so only humans are tracked by id.
     if (!a.bot) this.duelByUser.set(a.id, duel);
     if (!b.bot) this.duelByUser.set(b.id, duel);
@@ -529,7 +589,7 @@ export class DuelManager {
     const [s1, s2] = duel.sides;
     this.duelByUser.delete(s1.player.id);
     this.duelByUser.delete(s2.player.id);
-    const until = Date.now() + REMATCH_WINDOW_MS;
+    const until = Date.now() + this.rematchMs;
     if (!s1.player.bot) this.lastOpponent.set(s1.player.id, { me: s1.player, opponent: s2.player, until });
     if (!s2.player.bot) this.lastOpponent.set(s2.player.id, { me: s2.player, opponent: s1.player, until });
 

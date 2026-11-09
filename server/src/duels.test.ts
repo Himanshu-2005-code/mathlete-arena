@@ -463,7 +463,75 @@ describe("rematches", () => {
     await offered;
     const declined = once(a.sock, "rematch:declined");
     b.sock.emit("queue:join");
-    expect((await declined).message).toMatch(/declined/);
+    expect((await declined).message).toBe("dev1 started another game.");
+  });
+
+  /** Two players who have just finished a duel against each other. */
+  async function afterDuel(names: [string, string], extra: Partial<DuelOptions> = {}) {
+    const ctx = await setup(300, extra);
+    const a = await ctx.player(names[0]);
+    const b = await ctx.player(names[1]);
+    a.sock.emit("queue:join");
+    b.sock.emit("queue:join");
+    await Promise.all([once(a.sock, "duel:end"), once(b.sock, "duel:end")]);
+    return { ...ctx, a, b };
+  }
+
+  it("reaches an opponent who refreshed the page, and the rematch is playable on both sides", async () => {
+    const { a, b, reconnect } = await afterDuel(["eve1", "fay1"]);
+    // Fay refreshes: her old connection closes and a new one opens.
+    const { sock: fresh } = await reconnect(b.token, "presence");
+    b.sock.close();
+    await sleep(50);
+
+    const offered = once(fresh, "rematch:offered");
+    a.sock.emit("rematch:request");
+    expect(await offered).toEqual({ from: "eve1" });
+
+    const startA = once(a.sock, "duel:start");
+    const startB = once(fresh, "duel:start");
+    fresh.emit("rematch:request");
+    const [da, db] = await Promise.all([startA, startB]);
+    expect(db.duelId).toBe(da.duelId);
+
+    // Fay's answers count on her new connection.
+    await sleep(da.startsAt - Date.now() + 30);
+    const progressed = once(fresh, "duel:progress");
+    fresh.emit("duel:answer", { index: 0, value: sequenceQuestion(db.seed, 0).answer });
+    expect(await progressed).toMatchObject({ you: 1 });
+  });
+
+  it("tells the asker straight away when the other player declines", async () => {
+    const { a, b } = await afterDuel(["gil1", "hal1"]);
+    const offered = once(b.sock, "rematch:offered");
+    a.sock.emit("rematch:request");
+    await offered;
+    const declined = once(a.sock, "rematch:declined");
+    b.sock.emit("rematch:cancel");
+    expect(await declined).toEqual({ message: "hal1 declined the rematch." });
+  });
+
+  it("lets an unanswered offer lapse, telling both players", async () => {
+    const { a, b } = await afterDuel(["ida1", "jon1"], { rematchMs: 500 });
+    const offered = once(b.sock, "rematch:offered");
+    a.sock.emit("rematch:request");
+    await offered;
+    const [toA, toB] = await Promise.all([once(a.sock, "rematch:declined"), once(b.sock, "rematch:declined")]);
+    expect(toA.message).toBe("jon1 didn't answer in time.");
+    expect(toB.message).toBe("The rematch offer expired.");
+  });
+
+  it("ignores a double click on Rematch instead of sending a stray error", async () => {
+    const { a, b } = await afterDuel(["kim1", "lee1"]);
+    const messages: string[] = [];
+    a.sock.on("rematch:declined", (m) => messages.push(m.message));
+    let offers = 0;
+    b.sock.on("rematch:offered", () => offers++);
+    a.sock.emit("rematch:request");
+    a.sock.emit("rematch:request");
+    await sleep(150);
+    expect(offers).toBe(1);
+    expect(messages).toEqual([]);
   });
 
   it("lets you rematch a computer opponent straight away", async () => {
