@@ -245,8 +245,9 @@ sequenceDiagram
 3. **Answering.** The browser only sends an answer once it's right, then moves to the next question at once so typing never waits on the network. The server re-checks every answer against its own copy of the question. Each answer spends from a small budget that refills at one per 120 ms, up to four. A person never runs it dry, even when network delay bunches several of their answers together, but a script firing answers nonstop does (anti-script). The server also briefly locks out anyone who sends a wrong answer, since the real app never does.
 4. **Staying in sync.** If the server doesn't count an answer, the browser has run ahead. The server replies with `duel:resync` and the browser goes back to the question the server is on, so one lost answer can't spoil the rest of the duel.
 5. **One clock.** `duel:start` carries the server's own time (`serverNow`). The browser uses it to shift the start and end times onto its own clock, so a device clock that's a few seconds off can't stretch or cut short the 60 seconds. When the timer hits zero the answer box locks. The server keeps counting for one more second, because an answer typed at the buzzer by a far-away player is still on its way, then ignores anything later.
-6. **Dropped connections.** A player whose connection drops has 10 seconds to come back. On reconnecting, the server sends `duel:start` again with a `resume` block (both scores and the current question). If they don't come back, it counts as leaving and the other player wins. A result that was missed while disconnected is sent again on reconnect.
-7. **The result.** When time runs out, the server compares correct answers and updates both ratings with Elo (K = 32): beating a stronger player earns more than beating a weaker one. It saves the duel, and both players can ask for a rematch within a minute.
+6. **Dropped connections.** A player whose connection drops has 10 seconds to come back. On reconnecting, the server sends `duel:start` again with a `resume` block (both scores and the current question). Meanwhile the other player sees a `duel:opponent` notice with a countdown, so they know why the score has stopped moving. If the dropped player doesn't come back, it counts as leaving and the other player wins. A result that was missed while disconnected is sent again on reconnect.
+7. **The result.** When time runs out, the server compares correct answers and updates both ratings with Elo (K = 32): beating a stronger player earns more than beating a weaker one. It saves the duel.
+8. **Rematches.** For a minute after the duel, either player can ask for a rematch. Messages go to the *player* (a Socket.io room per user), not to the connection they had when the duel ended, so an offer still arrives after a refresh; it shows in the lobby if that's where they are. When the other player also asks, the new duel starts on each player's live connection. The asker is always told how it ended: declined, left the site, started another game, or no answer before the minute ran out. A computer opponent always accepts straight away.
 
 ## API
 
@@ -276,7 +277,7 @@ sequenceDiagram
 
 Client to server: `queue:join`, `queue:leave`, `challenge:create`, `challenge:join {code}`, `challenge:cancel`, `duel:answer {index, value}`, `duel:forfeit`, `rematch:request`, `rematch:cancel`.
 
-Server to client: `presence`, `queue:joined`, `queue:left`, `challenge:created {code}`, `challenge:error`, `duel:start` (with `serverNow`, and `resume` when rejoining), `duel:progress`, `duel:resync`, `duel:wrong`, `duel:end`, `rematch:offered {from}`, `rematch:waiting {opponent}`, `rematch:declined {message}`.
+Server to client: `presence`, `queue:joined`, `queue:left`, `challenge:created {code}`, `challenge:error`, `duel:start` (with `serverNow`, and `resume` when rejoining), `duel:progress`, `duel:resync`, `duel:opponent {connected, returnWithinMs?}`, `duel:wrong`, `duel:end`, `rematch:offered {from}`, `rematch:waiting {opponent}`, `rematch:declined {message}`.
 
 Sockets authenticate with the same JWT as the REST API (`auth: { token }`).
 
