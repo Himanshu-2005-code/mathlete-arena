@@ -473,6 +473,8 @@ export class DuelManager {
     const [me] = this.sideOf(duel, userId);
     if (me.player.socketId !== socketId) return;
     if (this.reconnectMs <= 0) return this.finish(duel, "forfeit", userId);
+    // Let the other player know why the score has stopped moving.
+    this.send(this.other(duel, me).player, "duel:opponent", { connected: false, returnWithinMs: this.reconnectMs });
     clearTimeout(me.dropTimer);
     me.dropTimer = setTimeout(() => {
       me.dropTimer = undefined;
@@ -491,6 +493,9 @@ export class DuelManager {
       me.dropTimer = undefined;
       me.player.socketId = socket.id;
       this.sendStart(duel, me, them, true);
+      this.send(them.player, "duel:opponent", { connected: true });
+      // Both dropped at once: tell the one coming back that the other is still away.
+      if (them.dropTimer) this.send(me.player, "duel:opponent", { connected: false, returnWithinMs: this.reconnectMs });
       return;
     }
     const last = this.lastResult.get(userId);

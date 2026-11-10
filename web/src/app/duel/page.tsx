@@ -62,6 +62,8 @@ export default function DuelPage() {
   const [index, setIndex] = useState(0);
   const [myScore, setMyScore] = useState(0);
   const [theirScore, setTheirScore] = useState(0);
+  /** Set while the opponent's connection is down: when they forfeit if they don't return. */
+  const [opponentAwayUntil, setOpponentAwayUntil] = useState<number | null>(null);
   const [value, setValue] = useState("");
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +122,7 @@ export default function DuelPage() {
       setError("");
       setRematch({ kind: "none" });
       setRematchMsg("");
+      setOpponentAwayUntil(null);
       setIndex(d.resume?.yourIndex ?? 0);
       setMyScore(d.resume?.you ?? 0);
       setTheirScore(d.resume?.opponent ?? 0);
@@ -138,6 +141,7 @@ export default function DuelPage() {
       setTheirScore(p.opponent);
       setIndex((i) => Math.max(i, p.yourIndex));
     });
+    s.on("duel:opponent", (p) => setOpponentAwayUntil(p.connected ? null : Date.now() + p.returnWithinMs));
     // An answer didn't count (sent too fast, or lost): go back to where the server is.
     s.on("duel:resync", (p) => {
       setMyScore(p.you);
@@ -151,6 +155,7 @@ export default function DuelPage() {
       if (live.kind !== "live") return;
       setRematch({ kind: "none" });
       setRematchMsg("");
+      setOpponentAwayUntil(null);
       setPhase({ kind: "over", ...e, opponentName: live.opponent.username, endedAt: Date.now() });
       refresh().catch(() => {});
     });
@@ -177,6 +182,7 @@ export default function DuelPage() {
         "duel:start",
         "duel:progress",
         "duel:resync",
+        "duel:opponent",
         "duel:end",
         "rematch:waiting",
         "rematch:offered",
@@ -307,6 +313,12 @@ export default function DuelPage() {
             <span className={`num${secs <= 5 ? " low" : ""}`}>{secs}</span>seconds left
           </span>
         </div>
+        {opponentAwayUntil !== null && !timeUp && connected && (
+          <p className="notice" role="status">
+            {live.opponent.username}&apos;s connection dropped. They have{" "}
+            {Math.max(0, Math.ceil((opponentAwayUntil - now) / 1000))}s to come back, or you win. Keep answering.
+          </p>
+        )}
         {(timeUp || !connected) && (
           <p className="notice" role="status">
             {timeUp ? "Time's up. Counting the answers…" : "Connection lost. Reconnecting… your duel is kept for a few seconds."}

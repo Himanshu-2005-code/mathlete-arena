@@ -96,6 +96,8 @@ export interface ServerToClientEvents {
   "duel:progress": (p: { you: number; opponent: number; yourIndex: number }) => void;
   /** An answer wasn't counted; go back to this question so client and server agree. */
   "duel:resync": (p: { you: number; opponent: number; yourIndex: number }) => void;
+  /** Your opponent's connection dropped (with how long they have to return) or came back. */
+  "duel:opponent": (p: { connected: true } | { connected: false; returnWithinMs: number }) => void;
   "duel:wrong": (w: { index: number }) => void;
   /** Your opponent asked for a rematch; send rematch:request to accept. */
   "rematch:offered": (r: { from: string }) => void;

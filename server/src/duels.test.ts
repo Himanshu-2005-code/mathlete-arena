@@ -280,14 +280,19 @@ describe("duels", () => {
     a.sock.emit("duel:answer", { index: 0, value: sequenceQuestion(da.seed, 0).answer });
     await progressed;
 
-    // Drop and come back within the window: same duel, score and question kept.
+    // Drop and come back within the window: same duel, score and question kept,
+    // and the opponent is told both times.
     let ended = false;
     b.sock.on("duel:end", () => (ended = true));
+    const away = once(b.sock, "duel:opponent");
     a.sock.disconnect();
+    expect(await away).toEqual({ connected: false, returnWithinMs: 400 });
+    const returned = once(b.sock, "duel:opponent");
     await sleep(150);
     const { sock: back, got } = await reconnect(a.token, "duel:start");
     const resumed = await got;
     expect(resumed).toMatchObject({ duelId: da.duelId, resume: { you: 1, opponent: 0, yourIndex: 1 } });
+    expect(await returned).toEqual({ connected: true });
     await sleep(400);
     expect(ended).toBe(false);
     const more = once(back, "duel:progress");
