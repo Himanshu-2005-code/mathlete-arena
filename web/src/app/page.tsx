@@ -7,6 +7,20 @@ import { playCorrect } from "@/lib/sound";
 import { DailyStatus } from "@/components/DailyStatus";
 import { Ticker } from "@/components/Ticker";
 
+/** Tells search engines this is a free browser game, for richer search results. */
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Mathlete Arena",
+  url: "https://mathlete-arena.onrender.com",
+  description: "Real-time 1v1 mental-math duels with Elo ratings, a daily challenge, practice sprints and number puzzles.",
+  applicationCategory: "GameApplication",
+  genre: "Educational math game",
+  operatingSystem: "Any (web browser)",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
 export default function Home() {
   const rng = useRef(createRng(randomSeed()));
   const [q, setQ] = useState<Question | null>(null);
@@ -39,6 +53,7 @@ export default function Home() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
       <section className="hero" aria-labelledby="hero-title">
         <h1 id="hero-title" className="sr-only">
           Mathlete Arena: speed math duels
