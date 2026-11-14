@@ -7,11 +7,17 @@ import "./globals.css";
 import "./hud.css";
 
 const description = "Speed math sprints, live duels, a daily challenge and number puzzles.";
+// Absolute base for canonical and social links. SITE_URL overrides it for a custom domain.
+const base = (process.env.SITE_URL?.trim() || "https://mathlete-arena.onrender.com").replace(/\/+$/, "");
 
 export const metadata: Metadata = {
   title: { default: "Mathlete Arena: speed math duels", template: "%s · Mathlete Arena" },
   description,
   applicationName: "Mathlete Arena",
+  metadataBase: new URL(base),
+  // Each page names its own address as the one true copy, so search engines
+  // don't split it across variants like trailing slashes or tracking links.
+  alternates: { canonical: "./" },
   openGraph: { title: "Mathlete Arena: speed math duels", description, type: "website", siteName: "Mathlete Arena" },
   twitter: { card: "summary", title: "Mathlete Arena: speed math duels", description },
 };
